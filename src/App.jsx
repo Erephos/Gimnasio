@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { canListMembers, getCurrentSession } from './lib/accounts.js'
 import Login from './page/login.jsx'
 import Memberships from './page/memberships.jsx'
 
@@ -20,7 +21,10 @@ function App() {
     return () => window.removeEventListener('hashchange', handleHashChange)
   }, [])
 
-  return page === 'memberships' ? <Memberships /> : <Login />
+  const canOpenMemberships =
+    page === 'memberships' && canListMembers(getCurrentSession())
+
+  return canOpenMemberships ? <Memberships /> : <Login />
 }
 
 export default App

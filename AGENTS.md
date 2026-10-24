@@ -25,11 +25,22 @@ There is no test runner, typecheck script, or CI configuration. Do not assume `n
 - Match the existing style: no semicolons, single quotes, 2-space indentation.
 - `dist/` and `node_modules/` are generated and gitignored; never edit them by hand.
 
-The app uses minimal hash routing in `App.jsx`: `#/login` (default) renders `src/page/login.jsx`, and `#/memberships` renders `src/page/memberships.jsx`. There is no backend.
+The app uses `react-router-dom` (v7) as its routing library. `HashRouter` is configured in `src/main.jsx`; routes and the shared header with navigation links live in `src/App.jsx`: `/login` (default), `/memberships`, `/ingresos`, and `/horarios`. `/` and any unknown path redirect to `/login` with `<Navigate>`. Hash routing keeps existing `#/...` links working and avoids server rewrites on static hosting. There is no backend.
 
-- Login authentication is mocked in `login.jsx` (`verifyCredentials`); replace it with the real API when one exists.
+- Use `<Link>`/`<NavLink>` for internal navigation and `<Navigate>` for redirects. Do not use `window.location` or raw `href="#/..."` anchors; add new screens as `<Route>` entries in `src/App.jsx`.
+- Login authentication is mocked in `login.jsx` (`verifyCredentials`); it offers two demo roles: socio and recepción/administración. The staff role redirects to `/memberships` with `useNavigate`. Replace it with the real API when one exists.
 - Memberships are demo data held in React state (`createInitialMembers`), so changes reset on reload.
-- Shared email validation lives in `src/lib/email.js`; plans, date math, membership status, and assignment rules live in `src/lib/memberships.js`. Keep business rules there rather than duplicating them in pages.
+- Check-ins are also in-memory (`createInitialCheckIns` in `src/lib/ingresos.js`). `registerCheckIn` validates DNI format, existence (404), inactive status, membership presence/expiry, and one entry per day; timestamps are computed in `America/Lima`.
+- Trainers, group classes, enrollments, and attendance are in-memory too (`src/lib/horarios.js`). `registerTrainer`, `registerClass`, `enrollMember`, `cancelEnrollment`, and `markAttendance` enforce DNI/discipline/date/time/capacity validation, trainer status, room and trainer time conflicts, active memberships, capacity limits, duplicate enrollments, and single attendance marking.
+- Shared email validation lives in `src/lib/email.js`; plans, date math, membership status, and assignment rules live in `src/lib/memberships.js`; DNI validation, Peru time, and check-in rules live in `src/lib/ingresos.js`; trainer, class, enrollment, and attendance rules live in `src/lib/horarios.js`. Keep business rules there rather than duplicating them in pages.
+
+## Reglas del proyecto
+
+- **Idioma:** responde siempre en español, incluidas las explicaciones, los resúmenes de cambios y los mensajes de la interfaz. Los nombres de archivos, funciones y APIs pueden mantenerse en inglés cuando sea la convención técnica.
+- **Stack:** usa solo React y Tailwind CSS para construir la interfaz. No agregues librerías de componentes, CSS-in-JS, frameworks de estado ni otras dependencias de UI sin pedirlo antes.
+- **Criterios de aceptación:** cada pantalla nueva o modificada debe cumplir todos los criterios de aceptación de su historia de usuario. Verifícalos explícitamente (lint, build y prueba funcional) antes de dar la tarea por terminada.
+- **Resumen de cambios:** al finalizar, explica qué archivos cambiaste y por qué, uno por uno, indicando el impacto de cada cambio.
+- **Datos de prueba:** usa siempre datos ficticios y de demostración (nombres, DNIs, correos y credenciales inventados). No uses datos reales de personas, credenciales de producción ni información sensible, ni siquiera en ejemplos o capturas.
 
 ## Bitácora y Registro de Cambios
 - **Actualización de estado:** Cada vez que se complete una tarea, refactorización o adición de código, el agente debe proporcionar un resumen claro de los archivos modificados.

@@ -1,13 +1,40 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { validateEmail } from '../lib/email.js'
+import Alert from '../components/Alert.jsx'
+import BrandMark from '../components/BrandMark.jsx'
+import Button from '../components/Button.jsx'
+import Field from '../components/Field.jsx'
+import Input from '../components/Input.jsx'
+import InputAction from '../components/InputAction.jsx'
+import { CheckIcon, WarningIcon } from '../components/icons.jsx'
 
 const MIN_PASSWORD_LENGTH = 12
 
+const ROLES = {
+  MEMBER: 'member',
+  STAFF: 'staff',
+}
+
 // Credenciales de demostración. En producción la validación SIEMPRE debe
 // hacerse en el backend; estas credenciales existen solo para probar la UI.
-const DEMO_USER = {
-  email: 'socio@ximedgar.com',
-  password: 'Gimnasio2026!',
+const DEMO_USERS = {
+  [ROLES.MEMBER]: {
+    label: 'Socio',
+    email: 'socio@ximedgar.com',
+    password: 'Gimnasio2026!',
+    destination: null,
+    heading: 'Acceso de socios',
+    subtitle: 'Consulta tu membresía y tus rutinas de entrenamiento.',
+  },
+  [ROLES.STAFF]: {
+    label: 'Recepción / Administración',
+    email: 'recepcion@ximedgar.com',
+    password: 'Recepcion2026!',
+    destination: '/memberships',
+    heading: 'Acceso de recepción',
+    subtitle: 'Registra socios y controla la vigencia de sus membresías.',
+  },
 }
 
 function validatePassword(value) {
@@ -23,24 +50,54 @@ function validatePassword(value) {
 }
 
 // Simula la llamada al backend. Sustituir por el endpoint real de autenticación.
-async function verifyCredentials(email, password) {
+async function verifyCredentials(email, password, role) {
   await new Promise((resolve) => {
     setTimeout(resolve, 700)
   })
 
-  return (
-    email.trim().toLowerCase() === DEMO_USER.email &&
-    password === DEMO_USER.password
+  const demoUser = DEMO_USERS[role]
+
+  return Boolean(
+    demoUser &&
+      email.trim().toLowerCase() === demoUser.email &&
+      password === demoUser.password,
   )
 }
 
 function Login() {
+  const [role, setRole] = useState(ROLES.MEMBER)
   const [form, setForm] = useState({ email: '', password: '' })
   const [errors, setErrors] = useState({})
   const [formError, setFormError] = useState('')
   const [success, setSuccess] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isRedirecting, setIsRedirecting] = useState(false)
+  const [redirectTarget, setRedirectTarget] = useState(null)
   const [showPassword, setShowPassword] = useState(false)
+  const navigate = useNavigate()
+
+  const demoUser = DEMO_USERS[role]
+
+  useEffect(() => {
+    if (!redirectTarget) return undefined
+
+    const timer = setTimeout(() => {
+      navigate(redirectTarget, { replace: true })
+    }, 700)
+
+    return () => clearTimeout(timer)
+  }, [navigate, redirectTarget])
+
+  function handleRoleChange(nextRole) {
+    if (nextRole === role || isRedirecting) return
+
+    setRole(nextRole)
+    setForm({ email: '', password: '' })
+    setErrors({})
+    setFormError('')
+    setSuccess(false)
+    setRedirectTarget(null)
+  }
 
   function handleChange(event) {
     const { name, value } = event.target
@@ -72,16 +129,23 @@ function Login() {
     setIsSubmitting(true)
 
     try {
-      const isValid = await verifyCredentials(form.email, form.password)
+      const isValid = await verifyCredentials(form.email, form.password, role)
 
       if (!isValid) {
         setFormError(
-          'Correo o contraseña incorrectos. Verifica tus datos e inténtalo de nuevo.',
+          role === ROLES.STAFF
+            ? 'Correo o contraseña de recepción incorrectos. Verifica tus datos e inténtalo de nuevo.'
+            : 'Correo o contraseña incorrectos. Verifica tus datos e inténtalo de nuevo.',
         )
         return
       }
 
       setSuccess(true)
+
+      if (demoUser.destination) {
+        setIsRedirecting(true)
+        setRedirectTarget(demoUser.destination)
+      }
     } catch {
       setFormError(
         'No pudimos validar tus credenciales en este momento. Inténtalo más tarde.',
@@ -90,9 +154,6 @@ function Login() {
       setIsSubmitting(false)
     }
   }
-
-  const inputBaseClasses =
-    'w-full rounded-lg border bg-slate-950/60 px-4 py-3 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:ring-2'
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 px-4 py-12 text-slate-100">
@@ -107,213 +168,163 @@ function Login() {
 
       <div className="relative w-full max-w-md">
         <header className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/15 ring-1 ring-emerald-400/30">
-            <svg
-              className="h-7 w-7 text-emerald-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth="1.8"
-              stroke="currentColor"
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M6.75 6.75h10.5M6.75 17.25h10.5M4.5 9v6M19.5 9v6M9 9v6M15 9v6"
-              />
-            </svg>
-          </div>
+          <BrandMark size="lg" className="mx-auto mb-4" />
           <h1 className="text-2xl font-bold tracking-tight text-white">
-            Acceso de socios
+            {demoUser.heading}
           </h1>
-          <p className="mt-2 text-sm text-slate-400">
-            Consulta tu membresía y tus rutinas de entrenamiento.
-          </p>
+          <p className="mt-2 text-sm text-slate-400">{demoUser.subtitle}</p>
         </header>
 
         <section className="rounded-2xl border border-white/10 bg-slate-900/80 p-6 shadow-2xl shadow-black/40 backdrop-blur sm:p-8">
+          <div
+            role="group"
+            aria-label="Tipo de acceso"
+            className="mb-6 grid grid-cols-2 gap-1 rounded-xl border border-white/10 bg-slate-950/60 p-1"
+          >
+            {[ROLES.MEMBER, ROLES.STAFF].map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => handleRoleChange(option)}
+                aria-pressed={role === option}
+                className={`rounded-lg px-3 py-2 text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40 ${
+                  role === option
+                    ? 'bg-emerald-500 text-slate-950'
+                    : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
+                }`}
+              >
+                {DEMO_USERS[option].label}
+              </button>
+            ))}
+          </div>
+
           <form noValidate onSubmit={handleSubmit} className="space-y-5">
             {formError && (
-              <div
-                role="alert"
-                className="flex items-start gap-3 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200"
+              <Alert
+                tone="error"
+                icon={<WarningIcon className="mt-0.5 h-5 w-5 shrink-0" />}
               >
-                <svg
-                  className="mt-0.5 h-5 w-5 shrink-0"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth="1.8"
-                  stroke="currentColor"
-                  aria-hidden="true"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M12 9v3.75m0 3h.008v.008H12v-.008ZM10.34 3.94 2.7 17.06A1.5 1.5 0 0 0 4 19.5h16a1.5 1.5 0 0 0 1.3-2.44L13.66 3.94a1.5 1.5 0 0 0-2.6 0Z"
-                  />
-                </svg>
-                <span>{formError}</span>
-              </div>
+                {formError}
+              </Alert>
             )}
 
             {success && (
-              <div
-                role="status"
-                className="flex items-start gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200"
+              <Alert
+                tone="success"
+                icon={<CheckIcon className="mt-0.5 h-5 w-5 shrink-0" />}
               >
-                <svg
-                  className="mt-0.5 h-5 w-5 shrink-0"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth="1.8"
-                  stroke="currentColor"
-                  aria-hidden="true"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="m4.5 12.75 6 6 9-13.5"
-                  />
-                </svg>
-                <span>
-                  Credenciales verificadas correctamente. ¡Bienvenido de nuevo!
-                </span>
-              </div>
+                {role === ROLES.STAFF
+                  ? 'Credenciales de recepción verificadas. Abriendo el panel de socios…'
+                  : 'Credenciales verificadas correctamente. ¡Bienvenido de nuevo!'}
+              </Alert>
             )}
 
-            <div>
-              <label
-                htmlFor="email"
-                className="mb-2 block text-sm font-medium text-slate-200"
-              >
-                Correo electrónico
-              </label>
-              <input
+            <Field
+              id="email"
+              label="Correo electrónico"
+              density="comfortable"
+              error={errors.email}
+              errorId="email-error"
+            >
+              <Input
                 id="email"
                 name="email"
                 type="email"
                 inputMode="email"
                 autoComplete="email"
+                size="md"
                 placeholder="nombre@dominio.com"
                 value={form.email}
                 onChange={handleChange}
-                aria-invalid={Boolean(errors.email)}
+                invalid={Boolean(errors.email)}
                 aria-describedby={errors.email ? 'email-error' : undefined}
-                className={`${inputBaseClasses} ${
-                  errors.email
-                    ? 'border-red-500/60 focus:ring-red-500/30'
-                    : 'border-white/10 focus:border-emerald-400/60 focus:ring-emerald-400/30'
-                }`}
               />
-              {errors.email && (
-                <p id="email-error" role="alert" className="mt-2 text-sm text-red-400">
-                  {errors.email}
-                </p>
-              )}
-            </div>
+            </Field>
 
-            <div>
-              <label
-                htmlFor="password"
-                className="mb-2 block text-sm font-medium text-slate-200"
-              >
-                Contraseña
-              </label>
+            <Field
+              id="password"
+              label="Contraseña"
+              density="comfortable"
+              error={errors.password}
+              errorId="password-error"
+              hint={
+                <>
+                  Mínimo {MIN_PASSWORD_LENGTH} caracteres · has escrito{' '}
+                  {form.password.length}
+                </>
+              }
+              hintId="password-help"
+            >
               <div className="relative">
-                <input
+                <Input
                   id="password"
                   name="password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
+                  size="md"
+                  className="pr-20"
                   placeholder="Mínimo 12 caracteres"
                   value={form.password}
                   onChange={handleChange}
-                  aria-invalid={Boolean(errors.password)}
+                  invalid={Boolean(errors.password)}
                   aria-describedby={
                     errors.password ? 'password-error' : 'password-help'
                   }
-                  className={`${inputBaseClasses} pr-20 ${
-                    errors.password
-                      ? 'border-red-500/60 focus:ring-red-500/30'
-                      : 'border-white/10 focus:border-emerald-400/60 focus:ring-emerald-400/30'
-                  }`}
                 />
-                <button
-                  type="button"
+                <InputAction
                   onClick={() => setShowPassword((visible) => !visible)}
-                  className="absolute top-1/2 right-3 -translate-y-1/2 rounded px-2 py-1 text-xs font-medium text-slate-400 transition hover:text-emerald-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40"
                   aria-label={
                     showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
                   }
                 >
                   {showPassword ? 'Ocultar' : 'Mostrar'}
-                </button>
+                </InputAction>
               </div>
-              {errors.password ? (
-                <p
-                  id="password-error"
-                  role="alert"
-                  className="mt-2 text-sm text-red-400"
-                >
-                  {errors.password}
-                </p>
-              ) : (
-                <p id="password-help" className="mt-2 text-xs text-slate-500">
-                  Mínimo {MIN_PASSWORD_LENGTH} caracteres · has escrito{' '}
-                  {form.password.length}
-                </p>
-              )}
-            </div>
+            </Field>
 
-            <button
+            <Button
               type="submit"
-              disabled={isSubmitting}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+              size="lg"
+              fullWidth
+              loading={isSubmitting || isRedirecting}
+              disabled={isSubmitting || isRedirecting}
+              className="flex items-center justify-center gap-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
             >
-              {isSubmitting && (
-                <svg
-                  className="h-4 w-4 animate-spin"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  aria-hidden="true"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4Z"
-                  />
-                </svg>
-              )}
-              {isSubmitting ? 'Validando…' : 'Iniciar sesión'}
-            </button>
+              {isRedirecting
+                ? 'Abriendo panel…'
+                : isSubmitting
+                  ? 'Validando…'
+                  : 'Iniciar sesión'}
+            </Button>
           </form>
 
           <p className="mt-6 rounded-lg border border-dashed border-white/10 bg-white/5 px-4 py-3 text-xs leading-relaxed text-slate-400">
-            <span className="font-semibold text-slate-300">Demo:</span>{' '}
-            {DEMO_USER.email} · {DEMO_USER.password}
+            <span className="font-semibold text-slate-300">
+              Demo {demoUser.label}:
+            </span>{' '}
+            {demoUser.email} · {demoUser.password}
+            {demoUser.destination && (
+              <span className="mt-1 block text-slate-500">
+                Al iniciar sesión se abre el panel de socios y membresías.
+              </span>
+            )}
           </p>
         </section>
 
         <p className="mt-6 text-center text-xs text-slate-500">
           ¿Problemas para acceder? Contacta a la recepción del gimnasio.
         </p>
-        <p className="mt-3 text-center text-xs text-slate-500">
-          ¿Trabajas en recepción?{' '}
-          <a
-            href="#/memberships"
-            className="font-medium text-emerald-400 transition hover:text-emerald-300"
-          >
-            Ir al panel de socios
-          </a>
-        </p>
+        {role === ROLES.MEMBER && (
+          <p className="mt-3 text-center text-xs text-slate-500">
+            ¿Trabajas en recepción?{' '}
+            <Link
+              to="/memberships"
+              className="font-medium text-emerald-400 transition hover:text-emerald-300"
+            >
+              Ir al panel de socios
+            </Link>
+          </p>
+        )}
       </div>
     </main>
   )

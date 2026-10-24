@@ -1,5 +1,7 @@
 import { normalizeEmail, validateEmail } from './email.js'
 
+const DNI_PATTERN = /^\d{8}$/
+
 export const MEMBER_STATUS = {
   ACTIVE: 'active',
   INACTIVE: 'inactive',
@@ -92,6 +94,18 @@ export function getPlan(planId) {
   return PLANS.find((plan) => plan.id === planId)
 }
 
+export function findMemberById(members, memberId) {
+  const normalizedId = String(memberId ?? '')
+    .trim()
+    .toLowerCase()
+
+  if (!normalizedId) return null
+
+  return (
+    members.find((member) => member.id.toLowerCase() === normalizedId) ?? null
+  )
+}
+
 export function getMembershipInfo(member, today = todayISO()) {
   if (!member?.membership) {
     return {
@@ -129,6 +143,19 @@ export function validateMemberInput(draft, members, ignoreMemberId = null) {
   const errors = {}
   const name = draft.name.trim()
   const email = normalizeEmail(draft.email)
+  const dni = String(draft.dni ?? '').trim()
+
+  if (!dni) {
+    errors.dni = 'El DNI del socio es obligatorio.'
+  } else if (!DNI_PATTERN.test(dni)) {
+    errors.dni = 'El DNI debe tener exactamente 8 dígitos numéricos.'
+  } else if (
+    members.some(
+      (member) => member.id !== ignoreMemberId && member.dni === dni,
+    )
+  ) {
+    errors.dni = 'Ya existe un socio registrado con este DNI.'
+  }
 
   if (!name) {
     errors.name = 'El nombre del socio es obligatorio.'
@@ -171,6 +198,7 @@ export function createInitialMembers() {
     {
       id: 'H1',
       name: 'Laura Gómez',
+      dni: '70123456',
       email: 'laura.gomez@ximedgar.com',
       status: MEMBER_STATUS.ACTIVE,
       joinedAt: addDays(today, -140),
@@ -179,6 +207,7 @@ export function createInitialMembers() {
     {
       id: 'H2',
       name: 'Carlos Ruiz',
+      dni: '12345678',
       email: 'carlos.ruiz@ximedgar.com',
       status: MEMBER_STATUS.INACTIVE,
       joinedAt: addDays(today, -260),
@@ -187,6 +216,7 @@ export function createInitialMembers() {
     {
       id: 'H3',
       name: 'Marta Díaz',
+      dni: '45678901',
       email: 'marta.diaz@ximedgar.com',
       status: MEMBER_STATUS.ACTIVE,
       joinedAt: addDays(today, -70),
@@ -195,6 +225,7 @@ export function createInitialMembers() {
     {
       id: 'H4',
       name: 'Javier Moreno',
+      dni: '87654321',
       email: 'javier.moreno@ximedgar.com',
       status: MEMBER_STATUS.ACTIVE,
       joinedAt: addDays(today, -180),
@@ -203,6 +234,7 @@ export function createInitialMembers() {
     {
       id: 'H5',
       name: 'Ana Torres',
+      dni: '23456789',
       email: 'ana.torres@ximedgar.com',
       status: MEMBER_STATUS.ACTIVE,
       joinedAt: addDays(today, -60),
@@ -218,10 +250,7 @@ export function assignMembership({
   startDate,
   today = todayISO(),
 }) {
-  const member = members.find(
-    (candidate) =>
-      candidate.id.toLowerCase() === String(memberId).trim().toLowerCase(),
-  )
+  const member = findMemberById(members, memberId)
 
   if (!member) {
     return {

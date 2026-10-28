@@ -1,6 +1,8 @@
 package com.gimnasio.backend.security;
 
 import com.gimnasio.backend.service.JwtService;
+import com.gimnasio.backend.repository.UsuarioRepository;
+import com.gimnasio.backend.entity.Usuario;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -21,9 +23,11 @@ import java.util.List;
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final UsuarioRepository usuarioRepository;
 
-    public JwtAuthFilter(JwtService jwtService) {
+    public JwtAuthFilter(JwtService jwtService, UsuarioRepository usuarioRepository) {
         this.jwtService = jwtService;
+        this.usuarioRepository = usuarioRepository;
     }
 
     @Override
@@ -36,15 +40,21 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             Claims claims = jwtService.validarToken((header.substring(7)));
 
             if (claims != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                String rol = claims.get("rol", String.class);
-
-                var autenticacion = new UsernamePasswordAuthenticationToken(
-                        claims.getSubject(),
-                        null,
-                        List.of(new SimpleGrantedAuthority("ROLE_" + rol )));
-
-                autenticacion.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(autenticacion);
+                String correo = claims.getSubject();
+                String rolToken = claims.get("rol", String.class);
+                if (correo != null && rolToken != null) {
+                    usuarioRepository.findByCorreo(correo)
+                            .filter(Usuario::getActivo)
+                            .filter(usuario -> usuario.getRol().getNombre().equals(rolToken))
+                            .ifPresent(usuario -> {
+                                var autenticacion = new UsernamePasswordAuthenticationToken(
+                                        correo,
+                                        null,
+                                        List.of(new SimpleGrantedAuthority("ROLE_" + rolToken)));
+                                autenticacion.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                                SecurityContextHolder.getContext().setAuthentication(autenticacion);
+                            });
+                }
             }
         }
 

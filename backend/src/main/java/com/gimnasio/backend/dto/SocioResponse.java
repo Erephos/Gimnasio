@@ -2,7 +2,7 @@ package com.gimnasio.backend.dto;
 
 import com.gimnasio.backend.entity.Socio;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 public record SocioResponse(
         Long                id,
@@ -13,7 +13,8 @@ public record SocioResponse(
         String              genero,
         String              direccion,
         String              contactoEmergencia,
-        LocalDateTime       creadoEn
+        boolean             activo,
+        OffsetDateTime      creadoEn
 ) {
     public static SocioResponse desde(Socio socio){
         return new SocioResponse(
@@ -25,6 +26,7 @@ public record SocioResponse(
                 socio.getGenero(),
                 socio.getDireccion(),
                 socio.getContactoEmergencia(),
+                socio.getUsuario().getActivo(),
                 socio.getCreadoEn()
         );
 

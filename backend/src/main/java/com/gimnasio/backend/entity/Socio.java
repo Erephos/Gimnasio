@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "socios")
@@ -40,5 +40,5 @@ public class Socio {
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
-    private LocalDateTime creadoEn;
+    private OffsetDateTime creadoEn;
 }

@@ -10,6 +10,10 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
@@ -58,9 +62,29 @@ public class GlobalExceptionHandler {
         return construir(HttpStatus.FORBIDDEN, "No tienes permisos para realizar esta operacion", null);
     }
 
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> rutaInexistente(NoResourceFoundException ex) {
+        return construir(HttpStatus.NOT_FOUND, "La ruta solicitada no existe", null);
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> metodoNoPermitido(HttpRequestMethodNotSupportedException ex) {
+        return construir(HttpStatus.METHOD_NOT_ALLOWED, "El metodo HTTP no esta permitido para esta ruta", null);
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> tipoContenidoNoSoportado(HttpMediaTypeNotSupportedException ex) {
+        return construir(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "El tipo de contenido no es soportado. Usa application/json", null);
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ErrorResponse> parametroFaltante(MissingServletRequestParameterException ex) {
+        return construir(HttpStatus.BAD_REQUEST, "Falta el parametro obligatorio '" + ex.getParameterName() + "'", null);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> inesperado(Exception ex) {
-        log.error("Error inesperado en una solicitud API ({})", ex.getClass().getSimpleName());
+        log.error("Error inesperado en una solicitud API", ex); // stack trace completo solo en el log del servidor
         return construir(HttpStatus.INTERNAL_SERVER_ERROR, "Ocurrio un error inesperado. Intenta nuevamente", null);
     }
 

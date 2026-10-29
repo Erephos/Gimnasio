@@ -78,7 +78,7 @@ public class SocioService {
     }
 
     public Page<SocioResponse> listar(int pagina, int tamanio, String filtro, Boolean activo) {
-        String consulta = filtro == null || filtro.isBlank() ? null : filtro.trim();
+        String consulta = filtro == null || filtro.isBlank() ? "" : filtro.trim();
         return socioRepository.buscar(consulta, activo,
                         PageRequest.of(Math.max(0, pagina), Math.max(1, Math.min(tamanio, 50)),
                                 Sort.by("usuario.apellido").ascending().and(Sort.by("usuario.nombre").ascending())))
@@ -93,6 +93,15 @@ public class SocioService {
         if (!staff && !socio.getUsuario().getId().equals(actor.getId())) {
             throw Err.prohibido("No puedes consultar el perfil de otro socio");
         }
+        return SocioResponse.desde(socio);
+    }
+
+    /** Perfil del socio que tiene la sesion iniciada (asi no necesita conocer su socioId). */
+    @Transactional(readOnly = true)
+    public SocioResponse miPerfil() {
+        Usuario actor = usuarioActual.obtener();
+        Socio socio = socioRepository.findByUsuarioId(actor.getId())
+                .orElseThrow(() -> Err.noEncontrado("No existe un perfil de socio para este usuario"));
         return SocioResponse.desde(socio);
     }
 

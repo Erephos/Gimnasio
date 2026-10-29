@@ -38,6 +38,12 @@ public class SocioController {
         return socioService.listar(page, size, q, activo);
     }
 
+    @GetMapping("/mi-perfil")
+    @PreAuthorize("hasRole('SOCIO')")
+    public SocioResponse miPerfil() {
+        return socioService.miPerfil();
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'RECEPCIONISTA', 'SOCIO')")
     public SocioResponse obtener(@PathVariable Long id) {

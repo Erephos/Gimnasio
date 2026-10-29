@@ -1,0 +1,167 @@
+{
+  "info": {
+    "name": "Gimnasio API - smoke tests seguros",
+    "description": "Comprobaciones de conectividad, autenticacion y validacion sin crear ni modificar datos de negocio.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Ruta protegida rechaza peticion sin token",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/socios/mi-perfil"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('Responde 401 sin autenticar', function () { pm.response.to.have.status(401) })",
+            "pm.test('Devuelve error JSON estandar', function () { pm.response.to.have.header('Content-Type'); pm.expect(pm.response.json().status).to.eql(401) })"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "Login rechaza credenciales ficticias",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"correo\":\"postman.invalid@example.test\",\"password\":\"CredencialFicticia-2026\"}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/auth/login"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('Credenciales ficticias rechazadas con 401', function () { pm.response.to.have.status(401) })"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "Listar planes requiere token",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/planes"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": ["pm.test('Responde 401 sin autenticar', function () { pm.response.to.have.status(401) })"]
+        }
+      }]
+    },
+    {
+      "name": "Administracion de usuarios requiere rol admin",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/usuarios"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": ["pm.test('Rechaza la peticion sin token con 401', function () { pm.response.to.have.status(401) })"]
+        }
+      }]
+    },
+    {
+      "name": "Recuperacion no revela si existe el correo",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"correo\":\"postman.invalid@example.test\"}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/auth/recuperar"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('Responde 202 para el correo ficticio', function () { pm.response.to.have.status(202) })",
+            "pm.test('Usa un mensaje que no revela existencia', function () { pm.expect(pm.response.json().mensaje).to.include('Si el correo esta registrado') })"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "Restablecer rechaza token ficticio",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"token\":\"token-postman-invalido\",\"nuevaPassword\":\"ClaveFicticia-2026\"}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/auth/restablecer"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": ["pm.test('Rechaza token invalido con 400', function () { pm.response.to.have.status(400) })"]
+        }
+      }]
+    },
+    {
+      "name": "Registro de socio valida campos obligatorios sin insertar",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"nombre\":\"\",\"apellido\":\"\",\"correo\":\"correo-invalido\",\"password\":\"123\",\"dni\":\"123\",\"telefono\":\"123\",\"genero\":\"OTRO\"}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/socios"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('Valida el registro con 400', function () { pm.response.to.have.status(400) })",
+            "pm.test('Incluye errores por campo', function () { pm.expect(pm.response.json().errores).to.be.an('object'); pm.expect(Object.keys(pm.response.json().errores).length).to.be.above(0) })"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "CORS permite origen local del frontend",
+      "request": {
+        "method": "OPTIONS",
+        "header": [
+          { "key": "Origin", "value": "http://localhost:5173" },
+          { "key": "Access-Control-Request-Method", "value": "GET" },
+          { "key": "Access-Control-Request-Headers", "value": "authorization,content-type" }
+        ],
+        "url": "{{baseUrl}}/api/socios/mi-perfil"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('Preflight CORS responde correctamente', function () { pm.expect(pm.response.code).to.be.oneOf([200, 204]) })",
+            "pm.test('Permite origen local configurado', function () { pm.response.to.have.header('Access-Control-Allow-Origin', 'http://localhost:5173') })"
+          ]
+        }
+      }]
+    }
+  ]
+}

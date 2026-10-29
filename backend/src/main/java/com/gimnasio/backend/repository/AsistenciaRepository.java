@@ -15,7 +15,7 @@ public interface AsistenciaRepository extends JpaRepository<Asistencia, Long> {
 
     Page<Asistencia> findByFecha(LocalDate fecha, Pageable pageable);
 
-    @Query("select a from Asistencia a where a.fecha = :fecha and (:filtro is null "
+    @Query("select a from Asistencia a where a.fecha = :fecha and (:filtro = '' "
             + "or lower(a.socio.dni) like lower(concat('%', :filtro, '%')) "
             + "or lower(a.socio.usuario.nombre) like lower(concat('%', :filtro, '%')) "
             + "or lower(a.socio.usuario.apellido) like lower(concat('%', :filtro, '%'))) ")

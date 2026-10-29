@@ -9,4 +9,6 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 
     Optional<Usuario> findByCorreo(String correo);
 
+    org.springframework.data.domain.Page<Usuario> findByRolNombre(String rol, org.springframework.data.domain.Pageable pageable);
+
 }

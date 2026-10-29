@@ -27,7 +27,7 @@ public interface PagoRepository extends JpaRepository<Pago, Long> {
             String estado, OffsetDateTime desde, OffsetDateTime hasta);
 
     @Query("select p from Pago p where (:socioId is null or p.socio.id = :socioId) "
-            + "and (:filtro is null or lower(p.socio.dni) like lower(concat('%', :filtro, '%')) "
+            + "and (:filtro = '' or lower(p.socio.dni) like lower(concat('%', :filtro, '%')) "
             + "or lower(p.socio.usuario.nombre) like lower(concat('%', :filtro, '%')) "
             + "or lower(p.socio.usuario.apellido) like lower(concat('%', :filtro, '%'))) "
             + "and (:estado is null or p.estado = :estado)")

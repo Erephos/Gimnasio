@@ -66,7 +66,7 @@ public class AsistenciaService {
     @Transactional(readOnly = true)
     public Page<AsistenciaResponse> listarPorFecha(LocalDate fecha, int pagina, int tamanio, String filtro) {
         LocalDate dia = fecha != null ? fecha : Fechas.hoy();
-        String consulta = filtro == null || filtro.isBlank() ? null : filtro.trim();
+        String consulta = filtro == null || filtro.isBlank() ? "" : filtro.trim();
         return asistenciaRepository.buscarPorFecha(dia, consulta,
                         PageRequest.of(Math.max(0, pagina), Math.max(1, Math.min(tamanio, 50)),
                                 Sort.by(Sort.Direction.DESC, "horaEntrada")))

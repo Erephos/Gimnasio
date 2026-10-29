@@ -79,7 +79,7 @@ public class PagoService {
 
     @Transactional(readOnly = true)
     public Page<PagoResponse> listar(int pagina, int tamanio, Long socioId, String filtro, String estado) {
-        String consulta = filtro == null || filtro.isBlank() ? null : filtro.trim();
+        String consulta = filtro == null || filtro.isBlank() ? "" : filtro.trim();
         String estadoFiltro = estado == null || estado.isBlank() ? null : estado.trim().toUpperCase();
         if (estadoFiltro != null && !List.of("REGISTRADO", "ANULADO").contains(estadoFiltro)) {
             throw Err.invalido("El estado debe ser REGISTRADO o ANULADO");

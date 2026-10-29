@@ -15,7 +15,18 @@ La recuperación de contraseña queda desactivada por defecto. Para habilitarla 
 
 ## Autenticación, roles y respuestas
 
-Para iniciar sesión, llama a `POST /api/auth/login` y guarda el `token` de la respuesta. En rutas protegidas envía `Authorization: Bearer <token>`. Roles: `ADMINISTRADOR`, `RECEPCIONISTA`, `SOCIO` y `ENTRENADOR`. Las fechas de negocio usan `America/Lima`; fecha y hora se transportan en ISO-8601.
+Para iniciar sesión, llama a `POST /api/auth/login` y guarda el `token` de la respuesta. En rutas protegidas envía `Authorization: Bearer <token>`. El token dura 30 minutos; como todavía no existe renovación, al vencer el frontend debe pedir al usuario que vuelva a iniciar sesión. Roles: `ADMINISTRADOR`, `RECEPCIONISTA`, `SOCIO` y `ENTRENADOR`. Las fechas de negocio usan `America/Lima`; fecha y hora se transportan en ISO-8601.
+
+La colección Postman de comprobaciones seguras está en `postman/Gimnasio-API.postman_collection.json`. Con el backend local en ejecución, se puede lanzar con:
+
+```bash
+postman collection run postman/Gimnasio-API.postman_collection.json \
+  --environment postman/Gimnasio-local.postman_environment.json
+```
+
+Estas comprobaciones no requieren iniciar sesión en Postman ni en la nube de Postman; solo apuntan a la URL local configurada en el entorno.
+
+La colección autenticada por roles está en `postman/Gimnasio-roles.postman_collection.json`. Requiere variables locales `adminEmail`, `adminPassword`, `recepcionEmail`, `recepcionPassword`, `socioEmail`, `socioPassword`, `entrenadorEmail` y `entrenadorPassword`, pasadas con `--env-var` o guardadas en un entorno privado de Postman. No guardes esas contraseñas en el repositorio. Cada login exitoso genera su evento normal en la tabla de auditoría.
 
 Los errores de API usan este formato:
 
@@ -28,7 +39,7 @@ Los errores de API usan este formato:
 }
 ```
 
-Estados comunes: `400` datos inválidos, `401` token ausente/inválido, `403` rol sin permiso, `404` recurso inexistente, `409` duplicado o conflicto de negocio y `500` error inesperado. Listados paginados devuelven el objeto estándar `Page` de Spring Data (`content`, `totalElements`, `totalPages`, `number`, `size`, entre otros campos).
+Estados comunes: `400` datos inválidos, `401` token ausente/inválido, `403` rol sin permiso, `404` recurso o ruta inexistente, `405` método HTTP no permitido, `415` tipo de contenido no soportado, `409` duplicado o conflicto de negocio y `500` error inesperado. Listados paginados devuelven el objeto estándar `Page` de Spring Data (`content`, `totalElements`, `totalPages`, `number`, `size`, entre otros campos).
 
 ## Contrato de endpoints
 
@@ -74,6 +85,12 @@ Estados comunes: `400` datos inválidos, `401` token ausente/inválido, `403` ro
 | `PATCH /api/reservas/{id}/asistencia` | Entrenador, admin, recepción | Marca asistencia a una reserva. |
 | `GET /api/reportes/resumen?desde=AAAA-MM-DD&hasta=AAAA-MM-DD` | Admin, recepción | Resumen del rango: ingresos, pagos, asistencias, membresías vigentes/vencidas y nuevos socios. Fechas opcionales. |
 | `GET /api/auditoria?page=0&size=20` | Admin | Eventos de auditoría paginados. |
+| `GET /api/socios/mi-perfil` | Socio | Perfil del socio con la sesión iniciada (no requiere conocer el `socioId`). |
+| `POST /api/usuarios` | Admin | Crea cuentas del personal. Cuerpo: `nombre`, `apellido`, `correo`, `password`, `rol` (`ADMINISTRADOR` o `RECEPCIONISTA`). |
+| `GET /api/usuarios?page=0&size=10&rol=` | Admin | Lista paginada de cuentas; filtro opcional por rol. |
+| `PATCH /api/usuarios/{id}/rol` | Admin | Cuerpo: `rol`. Solo entre administrador y recepcionista; no sobre sí mismo. Invalida la sesión del usuario afectado. |
+| `PATCH /api/usuarios/{id}/estado?activo=false` | Admin | Activa/desactiva una cuenta (no la propia). Una cuenta desactivada pierde acceso de inmediato aunque su token no haya vencido. |
+| `PATCH /api/usuarios/mi-password` | Cualquier usuario autenticado | Cuerpo: `passwordActual`, `passwordNueva` (8–100 caracteres). |
 
 ## Notas para integración
 

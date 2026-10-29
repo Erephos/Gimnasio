@@ -27,7 +27,7 @@ public interface SocioRepository extends JpaRepository<Socio, Long> {
     boolean existsByDniAndIdNot(String dni, Long id);
 
     @Query("select s from Socio s where (:activo is null or s.usuario.activo = :activo) "
-            + "and (:filtro is null or lower(s.dni) like lower(concat('%', :filtro, '%')) "
+            + "and (:filtro = '' or lower(s.dni) like lower(concat('%', :filtro, '%')) "
             + "or lower(s.usuario.nombre) like lower(concat('%', :filtro, '%')) "
             + "or lower(s.usuario.apellido) like lower(concat('%', :filtro, '%')) "
             + "or lower(concat(s.usuario.nombre, ' ', s.usuario.apellido)) like lower(concat('%', :filtro, '%'))) ")

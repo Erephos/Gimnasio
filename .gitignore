@@ -27,3 +27,9 @@ dist-ssr
 backend/target/
 backend/src/main/resources/application-local.properties
 backend/.env
+
+# Backend (Node.js)
+backend-node/node_modules/
+backend-node/.env
+backend-node/coverage/
+backend-node/npm-debug.log*

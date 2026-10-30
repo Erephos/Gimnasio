@@ -1,8 +1,18 @@
 # AGENTS.md
 
-Vite + React 19 SPA in plain JavaScript/JSX (no TypeScript), styled with Tailwind CSS v4. Frontend-only: there is no backend, API, database, or real auth service in this repo, despite the project-level mention of Spring Boot/PostgreSQL/NeonDB.
+Este repositorio contiene un frontend Vite + React 19 en `frontend/` y una API REST en Node.js/Express con PostgreSQL en `backend-node/`. La API usa el esquema PostgreSQL existente `gimnasio`; sus tablas están definidas por `SQL-Gimnasio.sql`. No describas el proyecto como frontend-only ni inventes servicios de autenticación.
 
-`README.md` is the untouched Vite template, not project documentation. Treat this file and the code as the source of truth.
+`frontend/README.md` is the Vite template. Para la API, consulta `backend-node/README.md` y el código de `backend-node/src/`.
+
+## Backend Node.js
+
+- Requiere Node.js 22 o compatible, PostgreSQL y variables locales en `backend-node/.env` basadas en `backend-node/.env.example`.
+- Comandos desde `backend-node/`: `npm install`, `npm run dev`, `npm start` y `npm test`.
+- Conserva el contrato, roles y formato de errores descritos en `backend-node/README.md`. No edites `backend/` (Spring Boot antiguo) como backend activo.
+- No versionar `.env`, tokens, contraseñas ni datos reales. Usar datos ficticios en verificaciones.
+- Si se modifica comportamiento del backend, verificar `npm test`, carga de la app y flujos funcionales contra base de prueba; no basta con que el servidor inicie.
+
+`backend/` conserva la implementación histórica en Spring Boot. Es referencia archivada y no debe ejecutarse, modificarse ni entregarse como el backend vigente; el backend vigente es `backend-node/`.
 
 ## Commands
 

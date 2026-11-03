@@ -1,0 +1,104 @@
+{
+  "info": {
+    "name": "Gimnasio API - pruebas autenticadas por rol",
+    "description": "Comprueba inicio de sesion, lecturas y permisos de cada rol. Los logins generan eventos normales de auditoria; no se crean ni modifican datos de negocio.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Administrador",
+      "item": [
+        {
+          "name": "Iniciar sesion",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"correo\":\"{{adminEmail}}\",\"password\":\"{{adminPassword}}\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/auth/login" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Admin inicia sesion', function () { pm.response.to.have.status(200) }); const b = pm.response.json(); pm.collectionVariables.set('adminToken', b.token); pm.collectionVariables.set('adminId', b.usuarioId); pm.test('El rol es ADMINISTRADOR', function () { pm.expect(b.rol).to.eql('ADMINISTRADOR') }); const claims = JSON.parse(atob(b.token.split('.')[1])); pm.test('El token dura 30 minutos', function () { pm.expect(claims.exp - claims.iat).to.eql(1800) })"] } }]
+        },
+        {
+          "name": "Listar socios",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": "{{baseUrl}}/api/socios?page=0&size=5" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Admin lista socios', function () { pm.response.to.have.status(200); pm.expect(pm.response.json().content).to.be.an('array') })"] } }]
+        },
+        {
+          "name": "Listar pagos",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": "{{baseUrl}}/api/pagos?page=0&size=5" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Admin lista pagos', function () { pm.response.to.have.status(200); pm.expect(pm.response.json().content).to.be.an('array') })"] } }]
+        },
+        {
+          "name": "Consultar reporte",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": "{{baseUrl}}/api/reportes/resumen" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Admin consulta resumen', function () { pm.response.to.have.status(200); pm.expect(pm.response.json()).to.have.property('ingresosRegistrados') })"] } }]
+        },
+        {
+          "name": "No puede cambiar su propio rol",
+          "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"rol\":\"RECEPCIONISTA\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/usuarios/{{adminId}}/rol" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Impide cambiarse su rol a si mismo', function () { pm.response.to.have.status(403) })"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Recepcionista",
+      "item": [
+        {
+          "name": "Iniciar sesion",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"correo\":\"{{recepcionEmail}}\",\"password\":\"{{recepcionPassword}}\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/auth/login" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Recepcion inicia sesion', function () { pm.response.to.have.status(200) }); const b = pm.response.json(); pm.collectionVariables.set('recepcionToken', b.token); pm.test('El rol es RECEPCIONISTA', function () { pm.expect(b.rol).to.eql('RECEPCIONISTA') })"] } }]
+        },
+        {
+          "name": "Consultar asistencias",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{recepcionToken}}" }], "url": "{{baseUrl}}/api/asistencias?page=0&size=5" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Recepcion consulta asistencias', function () { pm.response.to.have.status(200); pm.expect(pm.response.json().content).to.be.an('array') })"] } }]
+        },
+        {
+          "name": "No puede listar cuentas de usuario",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{recepcionToken}}" }], "url": "{{baseUrl}}/api/usuarios" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Solo admin lista cuentas', function () { pm.response.to.have.status(403) })"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Socio",
+      "item": [
+        {
+          "name": "Iniciar sesion",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"correo\":\"{{socioEmail}}\",\"password\":\"{{socioPassword}}\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/auth/login" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Socio inicia sesion', function () { pm.response.to.have.status(200) }); const b = pm.response.json(); pm.collectionVariables.set('socioToken', b.token); pm.test('El rol es SOCIO', function () { pm.expect(b.rol).to.eql('SOCIO') })"] } }]
+        },
+        {
+          "name": "Consultar perfil propio",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{socioToken}}" }], "url": "{{baseUrl}}/api/socios/mi-perfil" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Socio consulta su perfil', function () { pm.response.to.have.status(200); pm.expect(pm.response.json().correo).to.eql(pm.environment.get('socioEmail')) })"] } }]
+        },
+        {
+          "name": "Consultar historial de membresias",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{socioToken}}" }], "url": "{{baseUrl}}/api/membresias/mia" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Socio consulta su historial', function () { pm.response.to.have.status(200); pm.expect(pm.response.json()).to.be.an('array') })"] } }]
+        },
+        {
+          "name": "No puede listar el directorio completo",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{socioToken}}" }], "url": "{{baseUrl}}/api/socios" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Socio no lista todos los socios', function () { pm.response.to.have.status(403) })"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Entrenador",
+      "item": [
+        {
+          "name": "Iniciar sesion",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"correo\":\"{{entrenadorEmail}}\",\"password\":\"{{entrenadorPassword}}\"}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/auth/login" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Entrenador inicia sesion', function () { pm.response.to.have.status(200) }); const b = pm.response.json(); pm.collectionVariables.set('entrenadorToken', b.token); pm.test('El rol es ENTRENADOR', function () { pm.expect(b.rol).to.eql('ENTRENADOR') })"] } }]
+        },
+        {
+          "name": "Consultar horario",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{entrenadorToken}}" }], "url": "{{baseUrl}}/api/clases" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Entrenador consulta el horario', function () { pm.response.to.have.status(200); pm.expect(pm.response.json()).to.be.an('array') })"] } }]
+        },
+        {
+          "name": "No puede consultar reservas propias de socio",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{entrenadorToken}}" }], "url": "{{baseUrl}}/api/reservas/mias" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Reservas propias requiere rol SOCIO', function () { pm.response.to.have.status(403) })"] } }]
+        }
+      ]
+    }
+  ]
+}

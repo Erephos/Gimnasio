@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { NAV_ITEMS, ROLE_LABELS, homePathFor } from '../../config/roles.js'
 import { useAuth } from '../../features/auth/useAuth.js'
@@ -8,6 +9,17 @@ export default function AppLayout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const items = NAV_ITEMS.filter((i) => i.roles.includes(user.rol))
+=======
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { NAV_ITEMS, ROLE_LABELS, homePathFor } from '../../config/roles.js'
+import { useAuth } from '../../features/auth/useAuth.js'
+import BrandMark from '../ui/BrandMark.jsx'
+
+function AppLayout() {
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+  const items = NAV_ITEMS.filter((item) => item.roles.includes(user.rol))
+>>>>>>> 0aa17df66e9861c378ac78d1fc49477c137a5d85
 
   function handleLogout() {
     logout()
@@ -15,6 +27,7 @@ export default function AppLayout() {
   }
 
   return (
+<<<<<<< HEAD
     <div className="flex min-h-screen bg-[#0b0f1a] text-slate-200">
       {/* Sidebar */}
       <aside className="flex w-60 shrink-0 flex-col border-r border-white/5 bg-[#0d121f]">
@@ -38,10 +51,42 @@ export default function AppLayout() {
           {items.map((item) => {
             const Icon = ICONS[item.icon] || ICONS.grid
             return (
+=======
+    <div className="min-h-screen bg-slate-950 text-slate-100">
+      <header className="border-b border-white/10 bg-slate-950/80 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between gap-3">
+            <Link
+              to={homePathFor(user.rol)}
+              className="flex items-center gap-3 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40"
+            >
+              <BrandMark />
+              <div>
+                <p className="text-sm font-semibold tracking-tight text-white">ximEdgar Gym</p>
+                <p className="text-xs text-slate-400">{ROLE_LABELS[user.rol]}</p>
+              </div>
+            </Link>
+
+            <div className="flex items-center gap-3">
+              <span className="hidden text-xs text-slate-400 sm:inline">{user.nombre}</span>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="rounded-lg border border-white/10 px-3 py-2 text-xs font-medium text-slate-300 transition hover:border-white/20 hover:text-white"
+              >
+                Cerrar sesión
+              </button>
+            </div>
+          </div>
+
+          <nav aria-label="Navegación principal" className="flex flex-wrap items-center gap-2">
+            {items.map((item) => (
+>>>>>>> 0aa17df66e9861c378ac78d1fc49477c137a5d85
               <NavLink
                 key={item.to}
                 to={item.to}
                 className={({ isActive }) =>
+<<<<<<< HEAD
                   `flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] transition ${
                     isActive
                       ? 'bg-blue-500/15 text-blue-400'
@@ -104,3 +149,27 @@ export default function AppLayout() {
     </div>
   )
 }
+=======
+                  `rounded-lg border px-3 py-2 text-xs font-medium transition ${
+                    isActive
+                      ? 'border-emerald-400/40 bg-emerald-500/10 text-emerald-300'
+                      : 'border-white/10 text-slate-300 hover:border-white/20 hover:text-white'
+                  }`
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+        <Outlet />
+      </main>
+    </div>
+  )
+}
+
+export default AppLayout
+>>>>>>> 0aa17df66e9861c378ac78d1fc49477c137a5d85

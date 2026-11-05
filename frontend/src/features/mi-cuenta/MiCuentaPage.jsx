@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { useAuth } from '../auth/useAuth.js'
 import { ROLE_LABELS } from '../../config/roles.js'
 import { getDb } from '../../mock/db.js'
@@ -33,3 +34,43 @@ export default function MiCuentaPage() {
     </div>
   )
 }
+=======
+import PageHeader from '../../components/ui/PageHeader.jsx'
+import { ROLES } from '../../config/roles.js'
+import { useAuth } from '../auth/useAuth.js'
+import CambiarPassword from './CambiarPassword.jsx'
+import MembresiaCard from './MembresiaCard.jsx'
+import PerfilCard from './PerfilCard.jsx'
+import ReservasSocio from './ReservasSocio.jsx'
+
+function MiCuentaPage() {
+  const { user } = useAuth()
+
+  // El personal solo administra su contraseña; el resto es información de socio.
+  if (user.rol !== ROLES.SOCIO) {
+    return (
+      <>
+        <PageHeader title="Mi cuenta" description={`Sesión iniciada como ${user.nombre}.`} />
+        <CambiarPassword />
+      </>
+    )
+  }
+
+  return (
+    <>
+      <PageHeader
+        title={`Hola, ${user.nombre.split(' ')[0]}`}
+        description="Consulta tu membresía, reserva clases y mantén tus datos al día."
+      />
+      <div className="grid gap-6 lg:grid-cols-2">
+        <MembresiaCard />
+        <PerfilCard />
+      </div>
+      <ReservasSocio />
+      <CambiarPassword />
+    </>
+  )
+}
+
+export default MiCuentaPage
+>>>>>>> 0aa17df66e9861c378ac78d1fc49477c137a5d85

@@ -25,3 +25,5 @@ Abre http://localhost:5173
 - Sin backend. Todo corre en el navegador.
 - Diseño inspirado en el Figma "Pulso / Ignacio el gimnasio", branding **ximEdgar Gym**.
 - Roles controlan menú y acceso a pantallas.
+
+XD

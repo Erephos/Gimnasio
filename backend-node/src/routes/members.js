@@ -57,7 +57,7 @@ router.post('/socios', validate(registroSocio), asyncRoute(async (req, res) => {
     await audit(db, userId, 'REGISTRAR', 'SOCIO', socio.rows[0].id, 'Alta de socio')
     return findSocio(socio.rows[0].id, db)
   })
-  res.status(201).json(mapSocio(result))
+  res.status(201).json({ ...mapSocio(result), mensaje: 'REGISTRO EXITOSO' })
 }))
 
 router.get('/socios/mi-perfil', requireRoles('SOCIO'), asyncRoute(async (req, res) => {
@@ -104,7 +104,7 @@ router.put('/socios/:id', requireRoles('ADMINISTRADOR', 'RECEPCIONISTA', 'SOCIO'
     await audit(db, req.user.id, 'ACTUALIZAR', 'SOCIO', id, 'Datos de contacto actualizados')
     return findSocio(id, db)
   })
-  res.json(mapSocio(updated))
+  res.json({ ...mapSocio(updated), mensaje: 'DATOS ACTUALIZADOS' })
 }))
 
 router.delete('/socios/:id', requireRoles('ADMINISTRADOR'), asyncRoute(async (req, res) => {
@@ -115,7 +115,7 @@ router.delete('/socios/:id', requireRoles('ADMINISTRADOR'), asyncRoute(async (re
     await db.query('UPDATE gimnasio.usuarios SET activo=false, actualizado_en=now() WHERE id=$1', [socio.usuario_id])
     await audit(db, req.user.id, 'DESACTIVAR', 'SOCIO', id, 'Cuenta desactivada; historial preservado')
   })
-  res.status(204).end()
+  res.json({ mensaje: 'El socio fue desactivado correctamente.' })
 }))
 
 router.post('/usuarios', requireRoles('ADMINISTRADOR'), validate(registroPersonal), asyncRoute(async (req, res) => {

@@ -319,7 +319,7 @@ on('DELETE', '/socios/(\\d+)', ({ match, user, db }) => {
   const usuario = db.usuarios.find((u) => u.id === socio.usuarioId)
   if (usuario) usuario.activo = false
   audit(db, user, 'DESACTIVAR', 'SOCIO', socio.id, 'Baja lógica del socio.')
-  return ok(null)
+  return ok({ mensaje: 'El socio fue desactivado correctamente.' })
 }, { roles: [ROLES.ADMIN] })
 
 // ---------- planes ----------

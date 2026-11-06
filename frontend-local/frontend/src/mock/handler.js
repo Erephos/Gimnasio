@@ -56,6 +56,8 @@ function userView(u) {
 }
 
 function socioView(s) {
+  const estadoMembresia = vigenteMembresia(getDb(), s.id) ? 'VIGENTE' : 'SIN_MEMBRESIA'
+
   return {
     id: s.id,
     usuarioId: s.usuarioId,
@@ -70,6 +72,8 @@ function socioView(s) {
     contactoEmergencia: s.contactoEmergencia,
     activo: s.activo,
     creadoEn: s.creadoEn,
+    estadoMembresia,
+    fechaRegistro: s.creadoEn,
   }
 }
 

@@ -283,6 +283,9 @@ on('PUT', '/socios/(\\d+)', ({ match, body, user, db }) => {
   else if (db.usuarios.some((u) => u.id !== socio.usuarioId && norm(u.correo) === correo)) {
     errores.correo = 'Este correo ya pertenece a otra cuenta.'
   }
+  if (body.telefono !== undefined && body.telefono !== null && !/^\d{9}$/.test(String(body.telefono).trim())) {
+    errores.telefono = 'El teléfono debe tener exactamente 9 dígitos.'
+  }
   let dni = socio.dni
   if (body.dni !== undefined && body.dni !== socio.dni) {
     if (user.rol !== ROLES.ADMIN) throw new HttpError(403, 'Solo el administrador puede corregir el DNI.')
@@ -305,7 +308,7 @@ on('PUT', '/socios/(\\d+)', ({ match, body, user, db }) => {
   const usuario = db.usuarios.find((u) => u.id === socio.usuarioId)
   if (usuario) Object.assign(usuario, { correo, nombre: socio.nombre, apellido: socio.apellido })
   audit(db, user, 'ACTUALIZAR', 'SOCIO', socio.id, 'Datos del socio actualizados.')
-  return ok(socioView(socio))
+  return ok({ ...socioView(socio), mensaje: 'DATOS ACTUALIZADOS' })
 })
 
 on('DELETE', '/socios/(\\d+)', ({ match, user, db }) => {

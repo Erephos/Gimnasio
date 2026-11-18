@@ -1,325 +1,169 @@
-import { getDb, updateDb, resetDb } from '../mock/db.js'
+import { api } from './api.js'
 
-function nextId(list) {
-  return list.reduce((m, x) => Math.max(m, x.id || 0), 0) + 1
+// ---- Planes ----
+export async function listPlanes(all = false) {
+  return api.get(all ? '/planes/todos' : '/planes')
 }
 
-function nowHora() {
-  const d = new Date()
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+export async function createPlan({ nombre, precio, duracionDias }) {
+  return api.post('/planes', { nombre: nombre?.trim(), precio: Number(precio), duracionDias: Number(duracionDias) })
 }
 
-export function listSocios() {
-  return getDb().socios.filter((s) => s.activo !== false)
+export async function updatePlan(id, { nombre, precio, duracionDias }) {
+  return api.put(`/planes/${id}`, { nombre: nombre?.trim(), precio: Number(precio), duracionDias: Number(duracionDias) })
 }
 
-export function listPlanes(all = false) {
-  const planes = getDb().planes
-  return all ? planes : planes.filter((p) => p.activo !== false)
+export async function setPlanActivo(id, activo) {
+  return api.patch(`/planes/${id}/estado?activo=${activo}`)
 }
 
-export function listPagos() {
-  return getDb().pagos
+// ---- Socios ----
+export async function listSocios({ q = '', activo, page = 0, size = 50 } = {}) {
+  const params = new URLSearchParams({ page, size })
+  if (q) params.set('q', q)
+  if (activo !== undefined) params.set('activo', activo)
+  return api.get(`/socios?${params}`)
 }
 
-export function listClases() {
-  return getDb().clases
+export async function getSocio(id) {
+  return api.get(`/socios/${id}`)
 }
 
-export function listEntrenadores() {
-  return getDb().entrenadores.filter((e) => e.activo !== false)
+export async function getMiPerfil() {
+  return api.get('/socios/mi-perfil')
 }
 
-export function listUsers() {
-  return getDb().users
+export async function createSocio({ nombre, apellido, correo, password, dni, telefono, genero, direccion, contactoEmergencia }) {
+  return api.post('/socios', {
+    nombre: nombre?.trim(), apellido: apellido?.trim(), correo: correo?.trim(), password, dni, genero,
+    telefono: telefono?.trim() || undefined,
+    direccion: direccion?.trim() || undefined,
+    contactoEmergencia: contactoEmergencia?.trim() || undefined,
+  })
 }
 
-export function getCaja() {
-  return getDb().caja
+export async function updateSocio(id, patch) {
+  return api.put(`/socios/${id}`, patch)
 }
 
-export function getAlertas() {
-  const socios = listSocios()
-  const planes = getDb().planes
-  return socios
-    .filter((s) => s.estado === 'por_vencer' || s.estado === 'vencida')
-    .map((s, i) => ({
-      id: s.id,
-      socio: s.nombre,
-      plan: planes.find((p) => p.id === s.planId)?.nombre || '—',
-      estado: s.estado,
-      dias: s.estado === 'vencida' ? -1 : 3,
-      codigo: s.codigo,
-    }))
+export async function deactivateSocio(id) {
+  return api.del(`/socios/${id}`)
 }
 
-export function getStats() {
-  const socios = listSocios()
-  const pagos = listPagos()
-  const ingresos = pagos.reduce((a, p) => a + (p.importe || 0), 0)
-  return {
-    sociosTotal: socios.length,
-    sociosActivos: socios.filter((s) => s.estado === 'activa' || s.estado === 'por_vencer').length,
-    porVencer: socios.filter((s) => s.estado === 'por_vencer').length,
-    vencidos: socios.filter((s) => s.estado === 'vencida').length,
-    cobros: pagos.length,
-    ingresos,
-    clases: listClases().length,
-    entrenadores: listEntrenadores().length,
+// ---- Membresias ----
+export async function crearMembresia({ socioId, planId, fechaInicio }) {
+  return api.post('/membresias', { socioId: Number(socioId), planId: Number(planId), fechaInicio })
+}
+
+export async function getMembresiaVigenteSocio(socioId) {
+  try {
+    return await api.get(`/membresias/socio/${socioId}/vigente`)
+  } catch {
+    return null
   }
 }
 
-export function createSocio({ nombre, dni, correo, telefono, planId, password }) {
-  const dniClean = String(dni).replace(/\D/g, '')
-  if (!nombre?.trim()) throw new Error('El nombre es obligatorio')
-  if (dniClean.length < 7) throw new Error('DNI inválido')
-  if (!correo?.includes('@')) throw new Error('Correo inválido')
-
-  let created
-  updateDb((db) => {
-    if (db.socios.some((s) => s.dni === dniClean && s.activo !== false)) throw new Error('Ya existe un socio con ese DNI')
-    if (db.socios.some((s) => s.correo?.toLowerCase() === correo.toLowerCase() && s.activo !== false)) throw new Error('Ya existe un socio con ese correo')
-    const id = nextId(db.socios)
-    created = {
-      id,
-      codigo: `SOC-${String(id).padStart(4, '0')}`,
-      nombre: nombre.trim(),
-      dni: dniClean,
-      correo: correo.trim().toLowerCase(),
-      telefono: telefono?.trim() || '',
-      planId: Number(planId) || db.planes[0]?.id || 1,
-      estado: 'activa',
-      ultimaAsistencia: '—',
-      fechaAlta: new Date().toISOString().slice(0, 10),
-      activo: true,
-    }
-    db.socios.push(created)
-    if (password && password.length >= 4) {
-      db.users.push({
-        id: nextId(db.users),
-        correo: created.correo,
-        password,
-        nombre: created.nombre,
-        rol: 'SOCIO',
-        activo: true,
-        socioId: id,
-      })
-    }
-  })
-  return created
-}
-
-export function updateSocio(id, patch) {
-  let updated
-  updateDb((db) => {
-    const s = db.socios.find((x) => x.id === Number(id))
-    if (!s) throw new Error('Socio no encontrado')
-    if (patch.nombre != null) s.nombre = String(patch.nombre).trim()
-    if (patch.telefono != null) s.telefono = String(patch.telefono).trim()
-    if (patch.correo != null) s.correo = String(patch.correo).trim().toLowerCase()
-    if (patch.planId != null) s.planId = Number(patch.planId)
-    if (patch.estado != null) s.estado = patch.estado
-    if (patch.dni != null) s.dni = String(patch.dni).replace(/\D/g, '')
-    updated = { ...s }
-  })
-  return updated
-}
-
-export function deactivateSocio(id) {
-  updateDb((db) => {
-    const s = db.socios.find((x) => x.id === Number(id))
-    if (!s) throw new Error('Socio no encontrado')
-    s.activo = false
-    s.estado = 'vencida'
-    const u = db.users.find((x) => x.socioId === s.id || x.correo === s.correo)
-    if (u) u.activo = false
-  })
-}
-
-export function registerPago({ socioId, concepto, medio, importe, renovar }) {
-  const amount = Number(importe)
-  if (!amount || amount <= 0) throw new Error('Importe inválido')
-  if (!medio) throw new Error('Elige un medio de pago')
-
-  let pago
-  updateDb((db) => {
-    const socio = db.socios.find((s) => s.id === Number(socioId))
-    if (!socio) throw new Error('Socio no encontrado')
-    const id = nextId(db.pagos)
-    pago = {
-      id,
-      hora: nowHora(),
-      comprobante: `REC-${String(90000 + id).slice(-5)}`,
-      socio: socio.nombre,
-      socioId: socio.id,
-      concepto: concepto?.trim() || 'Pago membresía',
-      medio,
-      importe: amount,
-      estado: 'Pagado',
-    }
-    db.pagos.unshift(pago)
-    if (renovar !== false) socio.estado = 'activa'
-    if (medio === 'Efectivo') db.caja.ingresosEfectivo = (db.caja.ingresosEfectivo || 0) + amount
-    else if (medio === 'Transferencia') db.caja.transferencias = (db.caja.transferencias || 0) + amount
-    else if (medio === 'Tarjeta') db.caja.tarjetas = (db.caja.tarjetas || 0) + amount
-  })
-  return pago
-}
-
-export function checkIn(dni) {
-  const dniClean = String(dni).replace(/\D/g, '')
-  let result
-  updateDb((db) => {
-    const socio = db.socios.find((s) => s.dni === dniClean && s.activo !== false)
-    if (!socio) {
-      result = { ok: false, msg: 'DNI no encontrado en el sistema.' }
-      return
-    }
-    if (socio.estado === 'vencida') {
-      result = { ok: false, msg: `Acceso rechazado. Membresía de ${socio.nombre} vencida.`, socio }
-      return
-    }
-    socio.ultimaAsistencia = `Hoy, ${nowHora()}`
-    result = { ok: true, msg: `Ingreso registrado. Bienvenido/a ${socio.nombre}.`, socio: { ...socio } }
-  })
-  return result
-}
-
-export function createPlan({ nombre, precio, dias, disciplina }) {
-  if (!nombre?.trim()) throw new Error('Nombre obligatorio')
-  let plan
-  updateDb((db) => {
-    plan = {
-      id: nextId(db.planes),
-      nombre: nombre.trim(),
-      precio: Number(precio) || 0,
-      dias: Number(dias) || 30,
-      disciplina: disciplina?.trim() || 'Full',
-      activo: true,
-    }
-    db.planes.push(plan)
-  })
-  return plan
-}
-
-export function updatePlan(id, patch) {
-  let plan
-  updateDb((db) => {
-    const p = db.planes.find((x) => x.id === Number(id))
-    if (!p) throw new Error('Plan no encontrado')
-    if (patch.nombre != null) p.nombre = String(patch.nombre).trim()
-    if (patch.precio != null) p.precio = Number(patch.precio)
-    if (patch.dias != null) p.dias = Number(patch.dias)
-    if (patch.disciplina != null) p.disciplina = String(patch.disciplina).trim()
-    if (patch.activo != null) p.activo = Boolean(patch.activo)
-    plan = { ...p }
-  })
-  return plan
-}
-
-export function createClase({ nombre, dia, hora, entrenador, cupo, aula }) {
-  if (!nombre?.trim()) throw new Error('Nombre obligatorio')
-  let clase
-  updateDb((db) => {
-    clase = {
-      id: nextId(db.clases),
-      nombre: nombre.trim(),
-      dia: dia || 'Lunes',
-      hora: hora || '09:00',
-      entrenador: entrenador || 'Sin asignar',
-      cupo: Number(cupo) || 10,
-      inscritos: 0,
-      aula: aula || 'Aula 1',
-    }
-    db.clases.push(clase)
-  })
-  return clase
-}
-
-export function updateClase(id, patch) {
-  let clase
-  updateDb((db) => {
-    const c = db.clases.find((x) => x.id === Number(id))
-    if (!c) throw new Error('Clase no encontrada')
-    Object.assign(c, patch)
-    clase = { ...c }
-  })
-  return clase
-}
-
-export function deleteClase(id) {
-  updateDb((db) => {
-    db.clases = db.clases.filter((c) => c.id !== Number(id))
-  })
-}
-
-export function createEntrenador({ nombre, especialidad }) {
-  if (!nombre?.trim()) throw new Error('Nombre obligatorio')
-  let e
-  updateDb((db) => {
-    e = {
-      id: nextId(db.entrenadores),
-      nombre: nombre.trim(),
-      especialidad: especialidad?.trim() || 'General',
-      clases: 0,
-      activo: true,
-    }
-    db.entrenadores.push(e)
-  })
-  return e
-}
-
-export function recoverPassword(correo) {
-  const db = getDb()
-  const user = db.users.find((u) => u.correo.toLowerCase() === String(correo).trim().toLowerCase() && u.activo)
-  if (!user) throw new Error('No hay una cuenta con ese correo')
-  // Simulación: “enviamos” y devolvemos token demo
-  return {
-    ok: true,
-    message: `Se envió un enlace de recuperación a ${user.correo} (simulado). Usa la contraseña actual o restablécela abajo.`,
-    correo: user.correo,
-    canReset: true,
+export async function getMiMembresiaVigente() {
+  try {
+    return await api.get('/membresias/mia/vigente')
+  } catch {
+    return null
   }
 }
 
-export function resetPassword(correo, newPassword) {
-  if (!newPassword || newPassword.length < 6) throw new Error('La contraseña debe tener al menos 6 caracteres')
-  updateDb((db) => {
-    const user = db.users.find((u) => u.correo.toLowerCase() === String(correo).trim().toLowerCase())
-    if (!user) throw new Error('Usuario no encontrado')
-    user.password = newPassword
-  })
-  return { ok: true }
+export async function getAlertas(dias = 7) {
+  return api.get(`/membresias/alertas?dias=${dias}`)
 }
 
-export function registerPublic({ nombre, correo, password, dni }) {
-  return createSocio({
-    nombre,
-    correo,
-    password,
-    dni: dni || String(Math.floor(10000000 + Math.random() * 89999999)),
-    telefono: '',
-    planId: 1,
+// ---- Pagos ----
+export async function listPagos({ page = 0, size = 10, socioId, q, estado } = {}) {
+  const params = new URLSearchParams({ page, size })
+  if (socioId) params.set('socioId', socioId)
+  if (q) params.set('q', q)
+  if (estado) params.set('estado', estado)
+  return api.get(`/pagos?${params}`)
+}
+
+export async function registrarPago({ membresiaId, monto, metodo }) {
+  return api.post('/pagos', { membresiaId: Number(membresiaId), monto: Number(monto), metodo })
+}
+
+export async function anularPago(id, motivo) {
+  return api.patch(`/pagos/${id}/anular`, { motivo })
+}
+
+// ---- Asistencia ----
+export async function checkIn(dni) {
+  return api.post('/asistencias', { dni })
+}
+
+export async function listAsistencias({ fecha, q, page = 0, size = 20 } = {}) {
+  const params = new URLSearchParams({ page, size })
+  if (fecha) params.set('fecha', fecha)
+  if (q) params.set('q', q)
+  return api.get(`/asistencias?${params}`)
+}
+
+// ---- Clases / Entrenadores ----
+export async function listClases() {
+  return api.get('/clases')
+}
+
+export async function createClase(body) {
+  return api.post('/clases', body)
+}
+
+export async function cancelarClase(id) {
+  return api.patch(`/clases/${id}/cancelar`)
+}
+
+export async function listEntrenadores() {
+  return api.get('/entrenadores')
+}
+
+export async function createEntrenador({ nombre, apellido, correo, password, dni, telefono, especialidad }) {
+  return api.post('/entrenadores', {
+    nombre: nombre?.trim(), apellido: apellido?.trim(), correo: correo?.trim(), password, dni,
+    telefono: telefono?.trim() || undefined, especialidad: especialidad?.trim(),
   })
 }
 
-export function toggleUserActive(userId) {
-  updateDb((db) => {
-    const u = db.users.find((x) => x.id === Number(userId))
-    if (!u) throw new Error('Usuario no encontrado')
-    if (u.rol === 'ADMINISTRADOR') throw new Error('No se puede desactivar al administrador principal')
-    u.activo = !u.activo
-  })
+// ---- Admin / Usuarios ----
+export async function listUsers({ page = 0, size = 20, rol } = {}) {
+  const params = new URLSearchParams({ page, size })
+  if (rol) params.set('rol', rol)
+  return api.get(`/usuarios?${params}`)
 }
 
-export function changeUserRole(userId, rol) {
-  updateDb((db) => {
-    const u = db.users.find((x) => x.id === Number(userId))
-    if (!u) throw new Error('Usuario no encontrado')
-    u.rol = rol
-  })
+export async function toggleUserActive(userId, activo) {
+  return api.patch(`/usuarios/${userId}/estado?activo=${activo}`)
 }
 
-export function resetAllData() {
-  return resetDb()
+export async function changeUserRole(userId, rol) {
+  return api.patch(`/usuarios/${userId}/rol`, { rol })
+}
+
+// ---- Reportes / Auditoria ----
+export async function getResumen({ desde, hasta } = {}) {
+  const params = new URLSearchParams()
+  if (desde) params.set('desde', desde)
+  if (hasta) params.set('hasta', hasta)
+  return api.get(`/reportes/resumen?${params}`)
+}
+
+export async function listAuditoria({ page = 0, size = 20 } = {}) {
+  return api.get(`/auditoria?page=${page}&size=${size}`)
+}
+
+// ---- Recuperacion de contrasena ----
+export async function recoverPassword(correo) {
+  return api.post('/auth/recuperar', { correo })
+}
+
+export async function resetPassword(token, nuevaPassword) {
+  return api.post('/auth/restablecer', { token, nuevaPassword })
+}
+
+export async function registerPublic({ nombre, apellido, correo, password, dni, genero, telefono }) {
+  return api.post('/socios', { nombre: nombre?.trim(), apellido: apellido?.trim(), correo: correo?.trim(), password, dni, genero, telefono: telefono?.trim() || undefined })
 }

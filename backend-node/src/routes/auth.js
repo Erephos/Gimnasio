@@ -21,7 +21,7 @@ router.post('/login', validate(loginSchema), asyncRoute(async (req, res) => {
   const token = jwt.sign({ correo: user.correo, rol: user.rol.nombre }, process.env.JWT_SECRET,
     { subject: String(user.id), expiresIn: process.env.JWT_EXPIRES_IN ?? '30m', algorithm: 'HS256' })
   await audit(prisma, user.id, 'INICIAR_SESION', 'USUARIO', user.id, 'Inicio de sesion exitoso')
-  res.json({ token, tokenType: 'Bearer', usuarioId: Number(user.id), nombre: `${user.nombre} ${user.apellido}`.trim(), rol: user.rol.nombre })
+  res.json({ token, tokenType: 'Bearer', usuarioId: Number(user.id), nombre: `${user.nombre} ${user.apellido}`.trim(), correo: user.correo, rol: user.rol.nombre })
 }))
 
 router.post('/recuperar', validate(z.object({ correo: z.string().email() })), asyncRoute(async (req, res) => {

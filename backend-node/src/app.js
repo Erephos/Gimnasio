@@ -21,7 +21,7 @@ const allowedOrigins = (process.env.CORS_ORIGINS ?? 'http://localhost:5173')
 app.disable('x-powered-by')
 app.use(helmet())
 app.use(cors({ origin: allowedOrigins, methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'], allowedHeaders: ['Authorization', 'Content-Type', 'Accept'] }))
-app.use(express.json({ limit: '6mb' })) // base64 de una foto de rostro infla el tamano ~33%
+app.use(express.json({ limit: '1mb' }))
 
 app.get('/api/health', async (req, res, next) => {
   try {

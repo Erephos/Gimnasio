@@ -101,6 +101,14 @@ export async function checkIn(dni) {
   return api.post('/asistencias', { dni })
 }
 
+export async function enrolarRostro(socioId, descriptor) {
+  return api.post(`/socios/${socioId}/rostro`, { descriptor })
+}
+
+export async function checkInFacial(descriptor) {
+  return api.post('/asistencias/facial', { descriptor })
+}
+
 export async function listAsistencias({ fecha, q, page = 0, size = 20 } = {}) {
   const params = new URLSearchParams({ page, size })
   if (fecha) params.set('fecha', fecha)

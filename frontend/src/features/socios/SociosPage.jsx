@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { createSocio, crearMembresia, deactivateSocio, getMembresiaVigenteSocio, listPlanes, listSocios, updateSocio } from '../../services/data.js'
+import FaceCapture from '../../components/ui/FaceCapture.jsx'
+import { createSocio, crearMembresia, deactivateSocio, enrolarRostro, getMembresiaVigenteSocio, listPlanes, listSocios, updateSocio } from '../../services/data.js'
 
 const emptyForm = { nombre: '', apellido: '', dni: '', correo: '', telefono: '', genero: 'MASCULINO', password: 'Socio2026!' }
 const emptyEdit = { correo: '', telefono: '', direccion: '', contactoEmergencia: '' }
@@ -59,6 +60,18 @@ export default function SociosPage() {
     if (planes.length === 0) listPlanes().then(setPlanes)
     setPlanForm({ planId: '' })
     setError('')
+  }
+
+  function openRostro(s) {
+    setModal('rostro')
+    setActiveSocio(s)
+    setError('')
+  }
+
+  async function handleRostro(descriptor) {
+    await enrolarRostro(activeSocio.id, descriptor)
+    setOkMsg(`Rostro registrado para ${activeSocio.nombreCompleto}`)
+    setModal(null)
   }
 
   async function handleSubmit(e) {
@@ -141,6 +154,7 @@ export default function SociosPage() {
                     <td className="px-3 py-3"><span className={`rounded-full px-2 py-0.5 text-[11px] ${badge}`}>{label}</span></td>
                     <td className="px-3 py-3 space-x-2 text-xs">
                       <button type="button" onClick={() => openPlan(s)} className="text-emerald-400 hover:underline">Plan</button>
+                      <button type="button" onClick={() => openRostro(s)} className="text-purple-400 hover:underline">Rostro</button>
                       <button type="button" onClick={() => openEdit(s)} className="text-blue-400 hover:underline">Editar</button>
                       <button type="button" onClick={() => handleBaja(s.id)} className="text-red-400 hover:underline">Baja</button>
                     </td>
@@ -191,6 +205,18 @@ export default function SociosPage() {
               <button type="submit" className="flex-1 rounded-lg bg-blue-500 py-2 text-sm text-white">Guardar</button>
             </div>
           </form>
+        </div>
+      )}
+
+      {modal === 'rostro' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-md space-y-3 rounded-2xl border border-white/10 bg-[#111827] p-6">
+            <h2 className="text-lg font-semibold text-white">Enrolar rostro de {activeSocio?.nombreCompleto}</h2>
+            <p className="text-xs text-slate-400">Pide al socio que mire de frente a la cámara, con buena luz.</p>
+            <FaceCapture onCapture={handleRostro} label="Registrar rostro" />
+            {error && <p className="text-sm text-red-400">{error}</p>}
+            <button type="button" onClick={() => setModal(null)} className="w-full rounded-lg border border-white/10 py-2 text-sm text-slate-300">Cerrar</button>
+          </div>
         </div>
       )}
 

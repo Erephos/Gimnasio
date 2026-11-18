@@ -15,8 +15,13 @@ export default function FaceCapture({ onCapture, label = 'Capturar rostro' }) {
       .then((s) => {
         if (cancelled) { s.getTracks().forEach((t) => t.stop()); return }
         stream = s
-        if (videoRef.current) videoRef.current.srcObject = s
-        setReady(true)
+        const video = videoRef.current
+        if (!video) return
+        video.srcObject = s
+        // getUserMedia resuelve antes de que el <video> pinte el primer
+        // frame real; si se captura antes de "loadeddata" el frame suele
+        // venir negro y face-api no detecta nada.
+        video.onloadeddata = () => { if (!cancelled) setReady(true) }
       })
       .catch((err) => setError('No se pudo acceder a la cámara: ' + err.message))
     return () => {

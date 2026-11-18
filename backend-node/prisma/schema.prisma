@@ -1,13 +1,3 @@
-// Escrito a mano a partir de ../../SQL-Gimnasio.sql, que a su vez se
-// reconstruyo leyendo las consultas de src/routes/*.js (el SQL original
-// nunca se versiono). En cuanto exista una base Neon viva con ese SQL
-// aplicado, corran `npx prisma db pull` para que este archivo se corrija
-// solo con la estructura real.
-//
-// Los `check (...)` del SQL (enums de rol/genero/metodo/estado, montos > 0,
-// fechas coherentes) no se pueden expresar aqui: se repiten como comentario
-// y se validan con zod en cada ruta, igual que antes de la migracion.
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -19,9 +9,8 @@ datasource db {
 }
 
 model Rol {
-  id     BigInt @id @default(autoincrement())
-  nombre String @unique @db.VarChar(20)
-
+  id       BigInt    @id @default(autoincrement())
+  nombre   String    @unique @db.VarChar(30)
   usuarios Usuario[]
 
   @@map("roles")
@@ -29,122 +18,109 @@ model Rol {
 }
 
 model Usuario {
-  id             BigInt    @id @default(autoincrement())
-  nombre         String    @db.VarChar(60)
-  apellido       String    @db.VarChar(60)
-  correo         String    @unique @db.VarChar(100)
-  passwordHash   String    @map("password_hash")
-  rolId          BigInt    @map("rol_id")
-  activo         Boolean   @default(true)
-  creadoEn       DateTime  @default(now()) @map("creado_en") @db.Timestamptz(6)
-  actualizadoEn  DateTime? @map("actualizado_en") @db.Timestamptz(6)
-
-  rol                  Rol                @relation(fields: [rolId], references: [id])
-  socio                Socio?
-  entrenador           Entrenador?
-  pagosRegistrados     Pago[]             @relation("PagoRegistradoPor")
-  pagosAnulados        Pago[]             @relation("PagoAnuladoPor")
-  asistenciasRegistradas Asistencia[]     @relation("AsistenciaRegistradoPor")
-  recuperacionTokens   RecuperacionToken[]
-  auditorias           Auditoria[]
+  id                     BigInt              @id @default(autoincrement())
+  nombre                 String              @db.VarChar(60)
+  apellido               String              @db.VarChar(60)
+  correo                 String              @unique @db.VarChar(100)
+  passwordHash           String              @map("password_hash") @db.VarChar(255)
+  rolId                  BigInt              @map("rol_id")
+  activo                 Boolean             @default(true)
+  creadoEn               DateTime            @default(now()) @map("creado_en") @db.Timestamptz(6)
+  actualizadoEn          DateTime            @default(now()) @map("actualizado_en") @db.Timestamptz(6)
+  asistenciasRegistradas Asistencia[]        @relation("AsistenciaRegistradoPor")
+  auditorias             Auditoria[]
+  entrenador             Entrenador?
+  pagosAnulados          Pago[]              @relation("PagoAnuladoPor")
+  pagosRegistrados       Pago[]              @relation("PagoRegistradoPor")
+  recuperacionTokens     RecuperacionToken[]
+  socio                  Socio?
+  rol                    Rol                 @relation(fields: [rolId], references: [id], onUpdate: NoAction)
 
   @@map("usuarios")
   @@schema("gimnasio")
 }
 
 model Socio {
-  id                  BigInt   @id @default(autoincrement())
-  usuarioId           BigInt   @unique @map("usuario_id")
-  dni                 String   @unique @db.VarChar(8)
-  telefono            String?  @db.VarChar(9)
-  // check (genero in ('MASCULINO','FEMENINO'))
-  genero              String   @db.VarChar(10)
-  direccion           String?  @db.VarChar(150)
-  contactoEmergencia  String?  @map("contacto_emergencia") @db.VarChar(100)
-  creadoEn            DateTime @default(now()) @map("creado_en") @db.Timestamptz(6)
-
-  usuario     Usuario       @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  membresias  Membresia[]
-  pagos       Pago[]
-  asistencias Asistencia[]
-  reservas    Reserva[]
+  id                 BigInt       @id @default(autoincrement())
+  usuarioId          BigInt       @unique @map("usuario_id")
+  dni                String       @unique @db.VarChar(8)
+  telefono           String?      @db.VarChar(9)
+  genero             String       @db.VarChar(10)
+  direccion          String?      @db.VarChar(150)
+  contactoEmergencia String?      @map("contacto_emergencia") @db.VarChar(100)
+  creadoEn           DateTime     @default(now()) @map("creado_en") @db.Timestamptz(6)
+  asistencias        Asistencia[]
+  membresias         Membresia[]
+  pagos              Pago[]
+  reservas           Reserva[]
+  usuario            Usuario      @relation(fields: [usuarioId], references: [id], onUpdate: NoAction)
 
   @@map("socios")
   @@schema("gimnasio")
 }
 
 model Entrenador {
-  id            BigInt   @id @default(autoincrement())
-  usuarioId     BigInt   @unique @map("usuario_id")
-  dni           String   @unique @db.VarChar(8)
-  telefono      String?  @db.VarChar(9)
-  especialidad  String   @db.VarChar(50)
-  creadoEn      DateTime @default(now()) @map("creado_en") @db.Timestamptz(6)
-
-  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  clases  Clase[]
+  id           BigInt   @id @default(autoincrement())
+  usuarioId    BigInt   @unique @map("usuario_id")
+  dni          String   @unique @db.VarChar(8)
+  telefono     String?  @db.VarChar(9)
+  especialidad String   @db.VarChar(50)
+  creadoEn     DateTime @default(now()) @map("creado_en") @db.Timestamptz(6)
+  clases       Clase[]
+  usuario      Usuario  @relation(fields: [usuarioId], references: [id], onUpdate: NoAction)
 
   @@map("entrenadores")
   @@schema("gimnasio")
 }
 
 model Plan {
-  id            BigInt  @id @default(autoincrement())
-  nombre        String  @db.VarChar(30)
-  // check (precio > 0)
-  precio        Decimal @db.Decimal(10, 2)
-  duracionDias  Int     @map("duracion_dias")
-  activo        Boolean @default(true)
-
-  membresias Membresia[]
+  id           BigInt      @id @default(autoincrement())
+  nombre       String      @unique @db.VarChar(30)
+  precio       Decimal     @db.Decimal(10, 2)
+  duracionDias Int         @map("duracion_dias")
+  activo       Boolean     @default(true)
+  membresias   Membresia[]
 
   @@map("planes")
   @@schema("gimnasio")
 }
 
 model Membresia {
-  id            BigInt   @id @default(autoincrement())
-  socioId       BigInt   @map("socio_id")
-  planId        BigInt   @map("plan_id")
-  // fecha_fin es EXCLUSIVA: vigente si fecha_inicio <= hoy < fecha_fin
-  fechaInicio   DateTime @map("fecha_inicio") @db.Date
-  fechaFin      DateTime @map("fecha_fin") @db.Date
-  // check (precio_pagado > 0)
-  precioPagado  Decimal  @map("precio_pagado") @db.Decimal(10, 2)
-  creadaEn      DateTime @default(now()) @map("creada_en") @db.Timestamptz(6)
+  id           BigInt   @id @default(autoincrement())
+  socioId      BigInt   @map("socio_id")
+  planId       BigInt   @map("plan_id")
+  fechaInicio  DateTime @map("fecha_inicio") @db.Date
+  fechaFin     DateTime @map("fecha_fin") @db.Date
+  precioPagado Decimal  @map("precio_pagado") @db.Decimal(10, 2)
+  creadaEn     DateTime @default(now()) @map("creada_en") @db.Timestamptz(6)
+  plan         Plan     @relation(fields: [planId], references: [id], onUpdate: NoAction)
+  socio        Socio    @relation(fields: [socioId], references: [id], onUpdate: NoAction)
+  pagos        Pago[]
 
-  socio Socio  @relation(fields: [socioId], references: [id], onDelete: Cascade)
-  plan  Plan   @relation(fields: [planId], references: [id])
-  pagos Pago[]
-
-  @@index([socioId, fechaInicio])
+  @@index([socioId, fechaFin], map: "idx_membresias_socio_fin")
   @@map("membresias")
   @@schema("gimnasio")
 }
 
 model Pago {
-  id                BigInt    @id @default(autoincrement())
-  socioId           BigInt    @map("socio_id")
-  membresiaId       BigInt    @map("membresia_id")
-  // check (monto > 0)
-  monto             Decimal   @db.Decimal(10, 2)
-  // check (metodo in ('EFECTIVO','TRANSFERENCIA','TARJETA'))
-  metodo            String    @db.VarChar(20)
-  // check (estado in ('REGISTRADO','ANULADO'))
-  estado            String    @default("REGISTRADO") @db.VarChar(20)
-  fechaPago         DateTime  @default(now()) @map("fecha_pago") @db.Timestamptz(6)
-  registradoPorId   BigInt    @map("registrado_por")
-  anuladoPorId      BigInt?   @map("anulado_por")
-  anuladoEn         DateTime? @map("anulado_en") @db.Timestamptz(6)
-  motivoAnulacion   String?   @map("motivo_anulacion") @db.VarChar(200)
+  id              BigInt    @id @default(autoincrement())
+  socioId         BigInt    @map("socio_id")
+  membresiaId     BigInt    @map("membresia_id")
+  monto           Decimal   @db.Decimal(10, 2)
+  metodo          String    @db.VarChar(15)
+  estado          String    @default("REGISTRADO") @db.VarChar(10)
+  fechaPago       DateTime  @default(now()) @map("fecha_pago") @db.Timestamptz(6)
+  registradoPorId BigInt    @map("registrado_por")
+  anuladoPorId    BigInt?   @map("anulado_por")
+  anuladoEn       DateTime? @map("anulado_en") @db.Timestamptz(6)
+  motivoAnulacion String?   @map("motivo_anulacion") @db.VarChar(200)
+  anuladoPor      Usuario?  @relation("PagoAnuladoPor", fields: [anuladoPorId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  membresia       Membresia @relation(fields: [membresiaId], references: [id], onUpdate: NoAction)
+  registradoPor   Usuario   @relation("PagoRegistradoPor", fields: [registradoPorId], references: [id], onUpdate: NoAction)
+  socio           Socio     @relation(fields: [socioId], references: [id], onUpdate: NoAction)
 
-  socio         Socio     @relation(fields: [socioId], references: [id])
-  membresia     Membresia @relation(fields: [membresiaId], references: [id])
-  registradoPor Usuario   @relation("PagoRegistradoPor", fields: [registradoPorId], references: [id])
-  anuladoPor    Usuario?  @relation("PagoAnuladoPor", fields: [anuladoPorId], references: [id])
-
-  @@index([membresiaId])
-  @@index([fechaPago])
+  @@index([fechaPago], map: "idx_pagos_fecha")
+  @@index([socioId], map: "idx_pagos_socio")
   @@map("pagos")
   @@schema("gimnasio")
 }
@@ -152,34 +128,31 @@ model Pago {
 model Asistencia {
   id              BigInt   @id @default(autoincrement())
   socioId         BigInt   @map("socio_id")
-  fecha           DateTime @db.Date
+  fecha           DateTime @default(dbgenerated("((now() AT TIME ZONE 'America/Lima'::text))::date")) @db.Date
   horaEntrada     DateTime @default(now()) @map("hora_entrada") @db.Timestamptz(6)
   registradoPorId BigInt   @map("registrado_por")
+  registradoPor   Usuario  @relation("AsistenciaRegistradoPor", fields: [registradoPorId], references: [id], onUpdate: NoAction)
+  socio           Socio    @relation(fields: [socioId], references: [id], onUpdate: NoAction)
 
-  socio         Socio   @relation(fields: [socioId], references: [id])
-  registradoPor Usuario @relation("AsistenciaRegistradoPor", fields: [registradoPorId], references: [id])
-
-  @@unique([socioId, fecha])
+  @@unique([socioId, fecha], map: "uq_asistencias_socio_fecha")
+  @@index([fecha], map: "idx_asistencias_fecha")
   @@map("asistencias")
   @@schema("gimnasio")
 }
 
 model Clase {
-  id            BigInt   @id @default(autoincrement())
-  disciplina    String   @db.VarChar(30)
-  entrenadorId  BigInt   @map("entrenador_id")
-  aula          String   @db.VarChar(30)
-  inicio        DateTime @db.Timestamptz(6)
-  fin           DateTime @db.Timestamptz(6)
-  // check (aforo > 0)
-  aforo         Int
-  activa        Boolean  @default(true)
-  creadaEn      DateTime @default(now()) @map("creada_en") @db.Timestamptz(6)
+  id           BigInt     @id @default(autoincrement())
+  disciplina   String     @db.VarChar(30)
+  entrenadorId BigInt     @map("entrenador_id")
+  aula         String     @db.VarChar(30)
+  inicio       DateTime   @db.Timestamptz(6)
+  fin          DateTime   @db.Timestamptz(6)
+  aforo        Int
+  activa       Boolean    @default(true)
+  creadaEn     DateTime   @default(now()) @map("creada_en") @db.Timestamptz(6)
+  entrenador   Entrenador @relation(fields: [entrenadorId], references: [id], onUpdate: NoAction)
+  reservas     Reserva[]
 
-  entrenador Entrenador @relation(fields: [entrenadorId], references: [id])
-  reservas   Reserva[]
-
-  @@index([entrenadorId])
   @@map("clases")
   @@schema("gimnasio")
 }
@@ -188,30 +161,25 @@ model Reserva {
   id        BigInt    @id @default(autoincrement())
   claseId   BigInt    @map("clase_id")
   socioId   BigInt    @map("socio_id")
-  // check (estado in ('RESERVADA','CANCELADA')). Sin unique en BD: la app
-  // valida "sin duplicados mientras este RESERVADA" (ver schedule.js).
-  estado    String    @default("RESERVADA") @db.VarChar(20)
+  estado    String    @default("RESERVADA") @db.VarChar(10)
   asistioEn DateTime? @map("asistio_en") @db.Timestamptz(6)
   creadaEn  DateTime  @default(now()) @map("creada_en") @db.Timestamptz(6)
+  clase     Clase     @relation(fields: [claseId], references: [id], onUpdate: NoAction)
+  socio     Socio     @relation(fields: [socioId], references: [id], onUpdate: NoAction)
 
-  clase Clase @relation(fields: [claseId], references: [id])
-  socio Socio @relation(fields: [socioId], references: [id])
-
-  @@index([claseId])
-  @@index([socioId])
+  @@index([socioId], map: "idx_reservas_socio")
   @@map("reservas")
   @@schema("gimnasio")
 }
 
 model RecuperacionToken {
-  id         BigInt    @id @default(autoincrement())
-  usuarioId  BigInt    @map("usuario_id")
-  tokenHash  String    @map("token_hash")
-  expiraEn   DateTime  @map("expira_en") @db.Timestamptz(6)
-  usadoEn    DateTime? @map("usado_en") @db.Timestamptz(6)
-  creadoEn   DateTime  @default(now()) @map("creado_en") @db.Timestamptz(6)
-
-  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  id        BigInt    @id @default(autoincrement())
+  usuarioId BigInt    @map("usuario_id")
+  tokenHash String    @unique @map("token_hash") @db.VarChar(64)
+  expiraEn  DateTime  @map("expira_en") @db.Timestamptz(6)
+  usadoEn   DateTime? @map("usado_en") @db.Timestamptz(6)
+  creadoEn  DateTime  @default(now()) @map("creado_en") @db.Timestamptz(6)
+  usuario   Usuario   @relation(fields: [usuarioId], references: [id], onUpdate: NoAction)
 
   @@map("recuperacion_tokens")
   @@schema("gimnasio")
@@ -220,15 +188,15 @@ model RecuperacionToken {
 model Auditoria {
   id        BigInt   @id @default(autoincrement())
   usuarioId BigInt?  @map("usuario_id")
-  accion    String   @db.VarChar(40)
+  accion    String   @db.VarChar(30)
   entidad   String   @db.VarChar(30)
   entidadId BigInt?  @map("entidad_id")
-  detalle   String?
+  detalle   String?  @db.VarChar(500)
   fecha     DateTime @default(now()) @db.Timestamptz(6)
+  usuario   Usuario? @relation(fields: [usuarioId], references: [id], onDelete: Restrict, onUpdate: NoAction)
 
-  usuario Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
-
-  @@index([fecha])
+  @@index([fecha], map: "idx_auditoria_fecha")
+  @@index([usuarioId, fecha], map: "idx_auditoria_usuario_fecha")
   @@map("auditoria")
   @@schema("gimnasio")
 }

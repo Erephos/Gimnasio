@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken'
-import pool from '../config/database.js'
+import { prisma } from '../lib/prisma.js'
 import { asyncRoute, fail } from '../lib/http.js'
 
 export const authenticate = asyncRoute(async (req, res, next) => {
@@ -14,13 +14,11 @@ export const authenticate = asyncRoute(async (req, res, next) => {
     throw fail.unauthorized('El token es invalido o ha vencido')
   }
 
-  const { rows } = await pool.query(
-    `SELECT u.id, u.nombre, u.apellido, u.correo, u.activo, r.nombre AS rol
-     FROM gimnasio.usuarios u JOIN gimnasio.roles r ON r.id = u.rol_id WHERE u.id = $1`,
-    [claims.sub]
-  )
-  const user = rows[0]
-  if (!user?.activo || user.rol !== claims.rol) throw fail.unauthorized('La cuenta cambio o esta inactiva; inicia sesion nuevamente')
-  req.user = { ...user, id: Number(user.id) }
+  const user = await prisma.usuario.findUnique({
+    where: { id: BigInt(claims.sub) },
+    include: { rol: true }
+  })
+  if (!user?.activo || user.rol.nombre !== claims.rol) throw fail.unauthorized('La cuenta cambio o esta inactiva; inicia sesion nuevamente')
+  req.user = { id: Number(user.id), nombre: user.nombre, apellido: user.apellido, correo: user.correo, activo: user.activo, rol: user.rol.nombre }
   next()
 })

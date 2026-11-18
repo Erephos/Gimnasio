@@ -1,14 +1,15 @@
 # AGENTS.md
 
-Este repositorio contiene un frontend Vite + React 19 en `frontend/` y una API REST en Node.js/Express con PostgreSQL en `backend-node/`. La API usa el esquema PostgreSQL existente `gimnasio`; sus tablas están definidas por `SQL-Gimnasio.sql`. No describas el proyecto como frontend-only ni inventes servicios de autenticación.
+Este repositorio contiene un frontend Vite + React 19 en `frontend/` y una API REST en Node.js/Express/**Prisma** con PostgreSQL en `backend-node/`. La API usa el esquema PostgreSQL existente `gimnasio`; sus tablas están definidas por `SQL-Gimnasio.sql` (reconstruido desde el código de `backend-node/src/routes/*.js` — verificar contra la base real con `prisma db pull` antes de confiar en él). No describas el proyecto como frontend-only ni inventes servicios de autenticación.
 
 `frontend/README.md` is the Vite template. Para la API, consulta `backend-node/README.md` y el código de `backend-node/src/`.
 
 ## Backend Node.js
 
 - Requiere Node.js 22 o compatible, PostgreSQL y variables locales en `backend-node/.env` basadas en `backend-node/.env.example`.
-- Comandos desde `backend-node/`: `npm install`, `npm run dev`, `npm start` y `npm test`.
+- Comandos desde `backend-node/`: `npm install`, `npm run prisma:generate`, `npm run dev`, `npm start` y `npm test`. Tras tocar `prisma/schema.prisma`, correr `prisma:generate` antes de probar nada.
 - Conserva el contrato, roles y formato de errores descritos en `backend-node/README.md`. No edites `backend/` (Spring Boot antiguo) como backend activo.
+- Las operaciones con bloqueos de fila (`FOR UPDATE`) o `pg_advisory_xact_lock` se quedan como SQL crudo (`tx.$queryRaw`/`tx.$executeRaw`) dentro de `prisma.$transaction`; no son un error ni algo a "limpiar" convirtiéndolas a llamadas del ORM — Prisma no las modela.
 - No versionar `.env`, tokens, contraseñas ni datos reales. Usar datos ficticios en verificaciones.
 - Si se modifica comportamiento del backend, verificar `npm test`, carga de la app y flujos funcionales contra base de prueba; no basta con que el servidor inicie.
 

@@ -3,8 +3,8 @@ import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import crypto from 'node:crypto'
 import { z } from 'zod'
-import pool from '../config/database.js'
-import { asyncRoute, audit, fail, inTransaction, validate } from '../lib/http.js'
+import { prisma } from '../lib/prisma.js'
+import { asyncRoute, audit, fail, validate } from '../lib/http.js'
 
 const router = Router()
 const loginSchema = z.object({ correo: z.string().email().max(100), password: z.string().min(1) })
@@ -13,32 +13,31 @@ const dummyPasswordHash = bcrypt.hashSync(crypto.randomBytes(24).toString('hex')
 
 router.post('/login', validate(loginSchema), asyncRoute(async (req, res) => {
   const correo = req.body.correo.trim().toLowerCase()
-  const { rows } = await pool.query(
-    `SELECT u.id, u.nombre, u.apellido, u.correo, u.password_hash, u.activo, r.nombre AS rol
-     FROM gimnasio.usuarios u JOIN gimnasio.roles r ON r.id = u.rol_id WHERE lower(u.correo) = $1`, [correo]
-  )
-  const user = rows[0]
-  const passwordMatches = await bcrypt.compare(req.body.password, user?.password_hash ?? dummyPasswordHash)
+  const user = await prisma.usuario.findUnique({ where: { correo }, include: { rol: true } })
+  const passwordMatches = await bcrypt.compare(req.body.password, user?.passwordHash ?? dummyPasswordHash)
   if (!user?.activo || !passwordMatches) {
     throw fail.unauthorized('Credenciales invalidas')
   }
-  const token = jwt.sign({ correo: user.correo, rol: user.rol }, process.env.JWT_SECRET,
+  const token = jwt.sign({ correo: user.correo, rol: user.rol.nombre }, process.env.JWT_SECRET,
     { subject: String(user.id), expiresIn: process.env.JWT_EXPIRES_IN ?? '30m', algorithm: 'HS256' })
-  await audit(pool, user.id, 'INICIAR_SESION', 'USUARIO', user.id, 'Inicio de sesion exitoso')
-  res.json({ token, tokenType: 'Bearer', usuarioId: Number(user.id), nombre: `${user.nombre} ${user.apellido}`.trim(), rol: user.rol })
+  await audit(prisma, user.id, 'INICIAR_SESION', 'USUARIO', user.id, 'Inicio de sesion exitoso')
+  res.json({ token, tokenType: 'Bearer', usuarioId: Number(user.id), nombre: `${user.nombre} ${user.apellido}`.trim(), rol: user.rol.nombre })
 }))
 
 router.post('/recuperar', validate(z.object({ correo: z.string().email() })), asyncRoute(async (req, res) => {
   // Sin proveedor SMTP configurado no se emite ni se persiste un token recuperable.
   // La respuesta siempre es genérica para evitar enumerar cuentas.
   if (process.env.APP_MAIL_ENABLED === 'true') {
-    const { rows } = await pool.query('SELECT id FROM gimnasio.usuarios WHERE lower(correo) = $1 AND activo = true', [req.body.correo.trim().toLowerCase()])
-    if (rows[0]) {
+    const correo = req.body.correo.trim().toLowerCase()
+    const usuario = await prisma.usuario.findFirst({ where: { correo, activo: true } })
+    if (usuario) {
       const token = crypto.randomBytes(32).toString('base64url')
       const digest = crypto.createHash('sha256').update(token).digest('hex')
-      await inTransaction(pool, async (db) => {
-        await db.query('UPDATE gimnasio.recuperacion_tokens SET usado_en = now() WHERE usuario_id = $1 AND usado_en IS NULL', [rows[0].id])
-        await db.query('INSERT INTO gimnasio.recuperacion_tokens (usuario_id, token_hash, expira_en) VALUES ($1, $2, now() + interval \'30 minutes\')', [rows[0].id, digest])
+      await prisma.$transaction(async (tx) => {
+        await tx.recuperacionToken.updateMany({ where: { usuarioId: usuario.id, usadoEn: null }, data: { usadoEn: new Date() } })
+        await tx.recuperacionToken.create({
+          data: { usuarioId: usuario.id, tokenHash: digest, expiraEn: new Date(Date.now() + 30 * 60 * 1000) }
+        })
       })
       try {
         const { default: nodemailer } = await import('nodemailer')
@@ -61,7 +60,7 @@ router.post('/recuperar', validate(z.object({ correo: z.string().email() })), as
         })
       } catch (error) {
         console.error('No se pudo enviar el correo de recuperacion:', error.message)
-        await pool.query('UPDATE gimnasio.recuperacion_tokens SET usado_en=now() WHERE token_hash=$1', [digest])
+        await prisma.recuperacionToken.updateMany({ where: { tokenHash: digest }, data: { usadoEn: new Date() } })
       }
     }
   }
@@ -70,16 +69,18 @@ router.post('/recuperar', validate(z.object({ correo: z.string().email() })), as
 
 router.post('/restablecer', validate(resetSchema), asyncRoute(async (req, res) => {
   const digest = crypto.createHash('sha256').update(req.body.token).digest('hex')
-  await inTransaction(pool, async (db) => {
-    const { rows } = await db.query(
-      `SELECT id, usuario_id FROM gimnasio.recuperacion_tokens
-       WHERE token_hash = $1 AND usado_en IS NULL AND expira_en > now() FOR UPDATE`, [digest]
-    )
-    if (!rows[0]) throw fail.bad('El token de recuperacion es invalido o ha vencido')
+  await prisma.$transaction(async (tx) => {
+    // UPDATE ... RETURNING es atomico: equivale al SELECT ... FOR UPDATE +
+    // UPDATE que hacia la version con pg, en un solo viaje a la base.
+    const rows = await tx.$queryRaw`
+      UPDATE gimnasio.recuperacion_tokens SET usado_en = now()
+      WHERE token_hash = ${digest} AND usado_en IS NULL AND expira_en > now()
+      RETURNING id, usuario_id AS "usuarioId"`
+    const tokenRow = rows[0]
+    if (!tokenRow) throw fail.bad('El token de recuperacion es invalido o ha vencido')
     const hash = await bcrypt.hash(req.body.nuevaPassword, 12)
-    await db.query('UPDATE gimnasio.usuarios SET password_hash = $1, actualizado_en = now() WHERE id = $2', [hash, rows[0].usuario_id])
-    await db.query('UPDATE gimnasio.recuperacion_tokens SET usado_en = now() WHERE id = $1', [rows[0].id])
-    await audit(db, rows[0].usuario_id, 'RESTABLECER_PASSWORD', 'USUARIO', rows[0].usuario_id, 'Restablecimiento por correo')
+    await tx.usuario.update({ where: { id: tokenRow.usuarioId }, data: { passwordHash: hash, actualizadoEn: new Date() } })
+    await audit(tx, tokenRow.usuarioId, 'RESTABLECER_PASSWORD', 'USUARIO', tokenRow.usuarioId, 'Restablecimiento por correo')
   })
   res.json({ mensaje: 'Contrasena actualizada correctamente' })
 }))

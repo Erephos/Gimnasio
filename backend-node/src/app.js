@@ -1,7 +1,7 @@
 import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
-import pool from './config/database.js'
+import { prisma } from './lib/prisma.js'
 import authRoutes from './routes/auth.js'
 import memberRoutes from './routes/members.js'
 import planRoutes from './routes/plans.js'
@@ -24,7 +24,7 @@ app.use(express.json({ limit: '1mb' }))
 
 app.get('/api/health', async (req, res, next) => {
   try {
-    await pool.query('select 1')
+    await prisma.$queryRaw`select 1`
     res.json({ estado: 'ok', baseDatos: 'conectada' })
   } catch (error) {
     next(error)

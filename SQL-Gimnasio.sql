@@ -1,3 +1,6 @@
+create schema if not exists gimnasio;
+set search_path to gimnasio;
+
 create table roles(
     id      									bigint       							generated always as identity primary key,
     nombre  							varchar(30)  					not null unique

@@ -14,7 +14,7 @@ async function request(path, { method = 'GET', body } = {}) {
   })
   const text = await res.text()
   const data = text ? JSON.parse(text) : null
-  if (!res.ok) throw new Error(data?.message || `Error ${res.status} al conectar con el servidor`)
+  if (!res.ok) throw new Error(data?.mensaje || `Error ${res.status} al conectar con el servidor`)
   return data
 }
 

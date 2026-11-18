@@ -1,31 +1,45 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ROLE_LABELS, ROLES } from '../../config/roles.js'
-import { changeUserRole, listUsers, resetAllData, toggleUserActive } from '../../services/data.js'
+import { changeUserRole, listUsers, toggleUserActive } from '../../services/data.js'
+import { useAuth } from '../auth/useAuth.js'
+
+const ROLES_EDITABLES = [ROLES.ADMIN, ROLES.RECEPCION]
 
 export default function AdminPage() {
-  const [tick, setTick] = useState(0)
-  const users = useMemo(() => listUsers(), [tick])
+  const { user } = useAuth()
+  const [users, setUsers] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  function reload() {
+    setLoading(true)
+    listUsers({ size: 100 }).then((p) => { setUsers(p.content); setLoading(false) })
+  }
+
+  useEffect(reload, [])
+
+  async function handleRol(u, rol) {
+    try {
+      await changeUserRole(u.id, rol)
+      reload()
+    } catch (err) {
+      alert(err.message)
+    }
+  }
+
+  async function handleToggle(u) {
+    try {
+      await toggleUserActive(u.id, !u.activo)
+      reload()
+    } catch (err) {
+      alert(err.message)
+    }
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-white">Roles y seguridad</h1>
-          <p className="text-sm text-slate-400">Usuarios locales y permisos de menú por rol.</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => {
-            if (confirm('¿Resetear todos los datos demo?')) {
-              resetAllData()
-              setTick((t) => t + 1)
-              alert('Datos restaurados. Recarga si hace falta.')
-            }
-          }}
-          className="rounded-lg border border-red-500/30 px-3 py-2 text-xs text-red-400"
-        >
-          Resetear demo
-        </button>
+      <div>
+        <h1 className="text-xl font-semibold text-white">Roles y seguridad</h1>
+        <p className="text-sm text-slate-400">Usuarios del sistema y permisos de menú por rol.</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -34,7 +48,7 @@ export default function AdminPage() {
             <p className="text-sm font-semibold text-white">{v}</p>
             <p className="mt-1 text-xs text-slate-500">{k}</p>
             <p className="mt-3 text-xs text-slate-400">
-              {k === ROLES.ADMIN && 'Acceso total: socios, caja, roles, reportes, reset.'}
+              {k === ROLES.ADMIN && 'Acceso total: socios, caja, roles, reportes.'}
               {k === ROLES.RECEPCION && 'Operación: socios, caja, asistencia, alertas, reportes.'}
               {k === ROLES.ENTRENADOR && 'Clases y agenda.'}
               {k === ROLES.SOCIO && 'Mi cuenta y membresía.'}
@@ -58,50 +72,41 @@ export default function AdminPage() {
             </tr>
           </thead>
           <tbody>
-            {users.map((u) => (
-              <tr key={u.id} className="border-b border-white/5">
-                <td className="px-5 py-3 text-white">{u.nombre}</td>
-                <td className="px-3 py-3 text-slate-400">{u.correo}</td>
-                <td className="px-3 py-3">
-                  <select
-                    value={u.rol}
-                    disabled={u.rol === ROLES.ADMIN && u.correo === 'admin@ximedgar.com'}
-                    onChange={(e) => {
-                      try {
-                        changeUserRole(u.id, e.target.value)
-                        setTick((t) => t + 1)
-                      } catch (err) {
-                        alert(err.message)
-                      }
-                    }}
-                    className="rounded border border-white/10 bg-white/5 px-2 py-1 text-xs text-white"
-                  >
-                    {Object.values(ROLES).map((r) => (
-                      <option key={r} value={r}>{ROLE_LABELS[r]}</option>
-                    ))}
-                  </select>
-                </td>
-                <td className="px-3 py-3">
-                  <span className={`text-[11px] ${u.activo ? 'text-emerald-400' : 'text-red-400'}`}>{u.activo ? 'Activo' : 'Inactivo'}</span>
-                </td>
-                <td className="px-3 py-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      try {
-                        toggleUserActive(u.id)
-                        setTick((t) => t + 1)
-                      } catch (err) {
-                        alert(err.message)
-                      }
-                    }}
-                    className="text-xs text-slate-400 hover:text-white"
-                  >
-                    {u.activo ? 'Desactivar' : 'Activar'}
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {loading ? (
+              <tr><td className="px-5 py-6 text-slate-500" colSpan={5}>Cargando…</td></tr>
+            ) : users.map((u) => {
+              const esUnoMismo = u.id === user.usuarioId
+              const rolEditable = ROLES_EDITABLES.includes(u.rol) && !esUnoMismo
+              return (
+                <tr key={u.id} className="border-b border-white/5">
+                  <td className="px-5 py-3 text-white">{u.nombre} {u.apellido}</td>
+                  <td className="px-3 py-3 text-slate-400">{u.correo}</td>
+                  <td className="px-3 py-3">
+                    {rolEditable ? (
+                      <select
+                        value={u.rol}
+                        onChange={(e) => handleRol(u, e.target.value)}
+                        className="rounded border border-white/10 bg-white/5 px-2 py-1 text-xs text-white"
+                      >
+                        {ROLES_EDITABLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+                      </select>
+                    ) : (
+                      <span className="text-xs text-slate-300">{ROLE_LABELS[u.rol]}</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-3">
+                    <span className={`text-[11px] ${u.activo ? 'text-emerald-400' : 'text-red-400'}`}>{u.activo ? 'Activo' : 'Inactivo'}</span>
+                  </td>
+                  <td className="px-3 py-3">
+                    {!esUnoMismo && (
+                      <button type="button" onClick={() => handleToggle(u)} className="text-xs text-slate-400 hover:text-white">
+                        {u.activo ? 'Desactivar' : 'Activar'}
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>

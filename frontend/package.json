@@ -21,7 +21,7 @@
     "vite": "^6.0.0",
     "vitest": "^4.1.12"
   },
-  "description": "React 19 + Vite + Tailwind 4. **100% offline** (mock en localStorage).",
+  "description": "React 19 + Vite + Tailwind 4. Conectado a la API real (backend-node).",
   "main": "vite.config.js",
   "keywords": [],
   "author": "",

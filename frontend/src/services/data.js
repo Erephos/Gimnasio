@@ -88,6 +88,10 @@ export async function registrarPago({ membresiaId, monto, metodo }) {
   return api.post('/pagos', { membresiaId: Number(membresiaId), monto: Number(monto), metodo })
 }
 
+export async function listPagosPorMembresia(membresiaId) {
+  return api.get(`/pagos/membresia/${membresiaId}`)
+}
+
 export async function anularPago(id, motivo) {
   return api.patch(`/pagos/${id}/anular`, { motivo })
 }

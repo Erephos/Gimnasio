@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import FaceCapture from '../../components/ui/FaceCapture.jsx'
-import { createSocio, crearMembresia, deactivateSocio, enrolarRostro, getMembresiaVigenteSocio, listPlanes, listSocios, updateSocio } from '../../services/data.js'
+import { createSocio, crearMembresia, deactivateSocio, enrolarRostro, getMembresiaVigenteSocio, listPlanes, listSocios, toggleUserActive, updateSocio } from '../../services/data.js'
 
 const emptyForm = { nombre: '', apellido: '', dni: '', correo: '', telefono: '', genero: 'MASCULINO', password: 'Socio2026!' }
 const emptyEdit = { correo: '', telefono: '', direccion: '', contactoEmergencia: '' }
@@ -97,8 +97,13 @@ export default function SociosPage() {
   }
 
   async function handleBaja(id) {
-    if (!confirm('¿Dar de baja a este socio?')) return
+    if (!confirm('¿Dar de baja a este socio? Su cuenta quedará inactiva (no podrá loguearse ni hacer check-in), pero su historial se conserva.')) return
     await deactivateSocio(id)
+    reload()
+  }
+
+  async function handleReactivar(s) {
+    await toggleUserActive(s.usuarioId, true)
     reload()
   }
 
@@ -133,30 +138,40 @@ export default function SociosPage() {
                 <th className="px-5 py-3">Socio</th>
                 <th className="px-3 py-3">DNI</th>
                 <th className="px-3 py-3">Plan</th>
-                <th className="px-3 py-3">Estado</th>
+                <th className="px-3 py-3">Membresía</th>
+                <th className="px-3 py-3">Cuenta</th>
                 <th className="px-3 py-3">Acciones</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td className="px-5 py-6 text-slate-500" colSpan={5}>Cargando…</td></tr>
+                <tr><td className="px-5 py-6 text-slate-500" colSpan={6}>Cargando…</td></tr>
               ) : socios.length === 0 ? (
-                <tr><td className="px-5 py-6 text-slate-500" colSpan={5}>Sin resultados.</td></tr>
+                <tr><td className="px-5 py-6 text-slate-500" colSpan={6}>Sin resultados.</td></tr>
               ) : socios.map((s) => {
                 const vigente = s.membresia?.vigente
                 const badge = vigente ? 'bg-emerald-500/15 text-emerald-400' : s.membresia ? 'bg-red-500/15 text-red-400' : 'bg-white/10 text-slate-400'
                 const label = vigente ? 'Vigente' : s.membresia ? 'Vencida' : 'Sin membresía'
                 return (
-                  <tr key={s.id} className="border-b border-white/5">
+                  <tr key={s.id} className={`border-b border-white/5 ${!s.activo ? 'opacity-50' : ''}`}>
                     <td className="px-5 py-3 font-medium text-white">{s.nombreCompleto}</td>
                     <td className="px-3 py-3 font-mono text-xs text-slate-400">{s.dni}</td>
                     <td className="px-3 py-3 text-slate-300">{s.membresia?.planNombre || '—'}</td>
                     <td className="px-3 py-3"><span className={`rounded-full px-2 py-0.5 text-[11px] ${badge}`}>{label}</span></td>
+                    <td className="px-3 py-3">
+                      <span className={`rounded-full px-2 py-0.5 text-[11px] ${s.activo ? 'bg-emerald-500/15 text-emerald-400' : 'bg-slate-500/15 text-slate-400'}`}>
+                        {s.activo ? 'Activa' : 'Dada de baja'}
+                      </span>
+                    </td>
                     <td className="px-3 py-3 space-x-2 text-xs">
                       <button type="button" onClick={() => openPlan(s)} className="text-emerald-400 hover:underline">Plan</button>
                       <button type="button" onClick={() => openRostro(s)} className="text-purple-400 hover:underline">Rostro</button>
                       <button type="button" onClick={() => openEdit(s)} className="text-blue-400 hover:underline">Editar</button>
-                      <button type="button" onClick={() => handleBaja(s.id)} className="text-red-400 hover:underline">Baja</button>
+                      {s.activo ? (
+                        <button type="button" onClick={() => handleBaja(s.id)} className="text-red-400 hover:underline">Baja</button>
+                      ) : (
+                        <button type="button" onClick={() => handleReactivar(s)} className="text-emerald-400 hover:underline">Reactivar</button>
+                      )}
                     </td>
                   </tr>
                 )

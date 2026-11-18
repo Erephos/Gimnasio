@@ -85,7 +85,7 @@ export const fullName = (row, prefix = '') => `${row[`${prefix}nombre`]} ${row[`
 
 export function mapSocio(row) {
   return {
-    id: Number(row.id), nombreCompleto: `${row.nombre} ${row.apellido}`.trim(), correo: row.correo,
+    id: Number(row.id), usuarioId: Number(row.usuarioId), nombreCompleto: `${row.nombre} ${row.apellido}`.trim(), correo: row.correo,
     dni: row.dni, telefono: row.telefono, genero: row.genero, direccion: row.direccion,
     contactoEmergencia: row.contactoEmergencia, activo: row.activo, creadoEn: row.creadoEn
   }

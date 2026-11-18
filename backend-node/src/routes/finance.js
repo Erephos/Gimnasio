@@ -32,7 +32,13 @@ async function findPago(id, db = prisma) {
   return toPagoRow(p, `${p.socio.usuario.nombre} ${p.socio.usuario.apellido}`)
 }
 export function mapAsistencia(r, membresiaVigenteHasta = null) {
-  return { id: Number(r.id), socioId: Number(r.socioId), socioNombre: r.socioNombre, dni: r.dni, fecha: toIsoDate(r.fecha), horaEntrada: r.horaEntrada, membresiaVigenteHasta }
+  return {
+    id: Number(r.id), socioId: Number(r.socioId), socioNombre: r.socioNombre, dni: r.dni, fecha: toIsoDate(r.fecha), horaEntrada: r.horaEntrada, membresiaVigenteHasta,
+    proximaClase: r.proximaClase ? {
+      disciplina: r.proximaClase.disciplina, aula: r.proximaClase.aula,
+      entrenadorNombre: `${r.proximaClase.entrenadorNombre} ${r.proximaClase.entrenadorApellido}`.trim()
+    } : null
+  }
 }
 
 router.post('/pagos', requireRoles('ADMINISTRADOR', 'RECEPCIONISTA'), validate(paymentSchema), asyncRoute(async (req, res) => {
@@ -117,7 +123,19 @@ export async function registrarAsistencia(tx, socio, usuarioId) {
   if (!membresia) throw fail.conflict('El socio no tiene una membresia vigente')
   const inserted = await tx.asistencia.create({ data: { socioId: socio.id, fecha: hoy, registradoPorId: BigInt(usuarioId) } })
   await audit(tx, usuarioId, 'REGISTRAR', 'ASISTENCIA', inserted.id, `Socio ${socio.id}`)
-  return { ...inserted, dni: socio.dni, socioNombre: `${socio.nombre} ${socio.apellido}`, membresiaFin: membresia.fechaFin }
+  // Si el socio tiene una reserva activa para una clase de hoy, el saludo
+  // puede invitarlo a esa clase especifica (salon + coach) en vez de solo
+  // sugerir una rutina generica.
+  const proximaClase = await tx.$queryRaw`
+    SELECT c.disciplina, c.aula, u.nombre AS "entrenadorNombre", u.apellido AS "entrenadorApellido"
+    FROM gimnasio.reservas r
+    JOIN gimnasio.clases c ON c.id = r.clase_id
+    JOIN gimnasio.entrenadores e ON e.id = c.entrenador_id
+    JOIN gimnasio.usuarios u ON u.id = e.usuario_id
+    WHERE r.socio_id = ${socio.id} AND r.estado = 'RESERVADA' AND c.activa = true
+      AND (c.inicio AT TIME ZONE 'America/Lima')::date = ${todayLima()}::date
+    ORDER BY c.inicio ASC LIMIT 1`
+  return { ...inserted, dni: socio.dni, socioNombre: `${socio.nombre} ${socio.apellido}`, membresiaFin: membresia.fechaFin, proximaClase: proximaClase[0] ?? null }
 }
 
 router.post('/asistencias', requireRoles('ADMINISTRADOR', 'RECEPCIONISTA'), validate(checkinSchema), asyncRoute(async (req, res) => {

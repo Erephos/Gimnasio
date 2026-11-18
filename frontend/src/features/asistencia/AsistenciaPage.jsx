@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import FaceCapture from '../../components/ui/FaceCapture.jsx'
 import { checkIn, checkInFacial } from '../../services/data.js'
-import { rutinaDelDia } from '../../services/rutina.js'
+import { construirSaludo } from '../../services/rutina.js'
 import { hablar } from '../../services/voz.js'
 
 export default function AsistenciaPage() {
@@ -12,12 +12,9 @@ export default function AsistenciaPage() {
 
   function showResult(r) {
     const primerNombre = r.socioNombre.split(' ')[0]
-    const rutina = rutinaDelDia()
-    setResult({
-      ok: true,
-      msg: `Ingreso registrado. Bienvenido/a ${r.socioNombre}. Membresía vigente hasta ${r.membresiaVigenteHasta}. Rutina de hoy: ${rutina}.`,
-    })
-    hablar(`Bienvenido o bienvenida, ${primerNombre}. Hoy te toca rutina de ${rutina}.`)
+    const saludo = construirSaludo({ nombre: primerNombre, proximaClase: r.proximaClase })
+    setResult({ ok: true, msg: `Ingreso registrado. Membresía vigente hasta ${r.membresiaVigenteHasta}. ${saludo}` })
+    hablar(saludo)
   }
 
   async function handleCheck() {

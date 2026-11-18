@@ -8,6 +8,7 @@ import planRoutes from './routes/plans.js'
 import financeRoutes from './routes/finance.js'
 import scheduleRoutes from './routes/schedule.js'
 import adminRoutes from './routes/admin.js'
+import facialRoutes from './routes/facial.js'
 import { authenticate } from './middleware/auth.js'
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js'
 
@@ -20,7 +21,7 @@ const allowedOrigins = (process.env.CORS_ORIGINS ?? 'http://localhost:5173')
 app.disable('x-powered-by')
 app.use(helmet())
 app.use(cors({ origin: allowedOrigins, methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'], allowedHeaders: ['Authorization', 'Content-Type', 'Accept'] }))
-app.use(express.json({ limit: '1mb' }))
+app.use(express.json({ limit: '6mb' })) // base64 de una foto de rostro infla el tamano ~33%
 
 app.get('/api/health', async (req, res, next) => {
   try {
@@ -42,6 +43,7 @@ app.use('/api', planRoutes)
 app.use('/api', financeRoutes)
 app.use('/api', scheduleRoutes)
 app.use('/api', adminRoutes)
+app.use('/api', facialRoutes)
 
 app.use(notFoundHandler)
 app.use(errorHandler)

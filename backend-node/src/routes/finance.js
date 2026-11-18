@@ -31,7 +31,7 @@ async function findPago(id, db = prisma) {
   if (!p) throw fail.missing('Pago no encontrado')
   return toPagoRow(p, `${p.socio.usuario.nombre} ${p.socio.usuario.apellido}`)
 }
-function mapAsistencia(r, membresiaVigenteHasta = null) {
+export function mapAsistencia(r, membresiaVigenteHasta = null) {
   return { id: Number(r.id), socioId: Number(r.socioId), socioNombre: r.socioNombre, dni: r.dni, fecha: toIsoDate(r.fecha), horaEntrada: r.horaEntrada, membresiaVigenteHasta }
 }
 
@@ -107,6 +107,19 @@ router.patch('/pagos/:id/anular', requireRoles('ADMINISTRADOR'), validate(annulS
   res.json(mapPago(result))
 }))
 
+// Comparte el nucleo del check-in (vigencia de membresia + insert + audit)
+// entre /asistencias (por DNI) y /asistencias/facial (por reconocimiento
+// facial): ambos ya tienen el socio resuelto, solo cambia como llegaron ahi.
+export async function registrarAsistencia(tx, socio, usuarioId) {
+  if (!socio.activo) throw fail.conflict('El socio esta inactivo')
+  const hoy = asDate(todayLima())
+  const membresia = await tx.membresia.findFirst({ where: { socioId: socio.id, fechaInicio: { lte: hoy }, fechaFin: { gt: hoy } }, orderBy: { fechaInicio: 'desc' } })
+  if (!membresia) throw fail.conflict('El socio no tiene una membresia vigente')
+  const inserted = await tx.asistencia.create({ data: { socioId: socio.id, fecha: hoy, registradoPorId: BigInt(usuarioId) } })
+  await audit(tx, usuarioId, 'REGISTRAR', 'ASISTENCIA', inserted.id, `Socio ${socio.id}`)
+  return { ...inserted, dni: socio.dni, socioNombre: `${socio.nombre} ${socio.apellido}`, membresiaFin: membresia.fechaFin }
+}
+
 router.post('/asistencias', requireRoles('ADMINISTRADOR', 'RECEPCIONISTA'), validate(checkinSchema), asyncRoute(async (req, res) => {
   const result = await prisma.$transaction(async (tx) => {
     const rows = await tx.$queryRaw`
@@ -114,13 +127,7 @@ router.post('/asistencias', requireRoles('ADMINISTRADOR', 'RECEPCIONISTA'), vali
       WHERE s.dni = ${req.body.dni} FOR UPDATE OF s, u`
     const socio = rows[0]
     if (!socio) throw fail.missing('No existe un socio con ese DNI')
-    if (!socio.activo) throw fail.conflict('El socio esta inactivo')
-    const hoy = asDate(todayLima())
-    const membresia = await tx.membresia.findFirst({ where: { socioId: socio.id, fechaInicio: { lte: hoy }, fechaFin: { gt: hoy } }, orderBy: { fechaInicio: 'desc' } })
-    if (!membresia) throw fail.conflict('El socio no tiene una membresia vigente')
-    const inserted = await tx.asistencia.create({ data: { socioId: socio.id, fecha: hoy, registradoPorId: BigInt(req.user.id) } })
-    await audit(tx, req.user.id, 'REGISTRAR', 'ASISTENCIA', inserted.id, `Socio ${socio.id}`)
-    return { ...inserted, dni: socio.dni, socioNombre: `${socio.nombre} ${socio.apellido}`, membresiaFin: membresia.fechaFin }
+    return registrarAsistencia(tx, socio, req.user.id)
   })
   res.status(201).json(mapAsistencia(result, toIsoDate(result.membresiaFin)))
 }))

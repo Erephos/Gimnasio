@@ -49,6 +49,7 @@ model Socio {
   direccion          String?      @db.VarChar(150)
   contactoEmergencia String?      @map("contacto_emergencia") @db.VarChar(100)
   creadoEn           DateTime     @default(now()) @map("creado_en") @db.Timestamptz(6)
+  rostroPersonId     String?      @map("rostro_person_id") @db.VarChar(64)
   asistencias        Asistencia[]
   membresias         Membresia[]
   pagos              Pago[]

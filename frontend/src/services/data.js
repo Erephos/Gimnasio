@@ -130,7 +130,8 @@ export async function cancelarClase(id) {
 }
 
 export async function listEntrenadores() {
-  return api.get('/entrenadores')
+  const page = await api.get('/entrenadores?size=100')
+  return page.content
 }
 
 export async function createEntrenador({ nombre, apellido, correo, password, dni, telefono, especialidad }) {

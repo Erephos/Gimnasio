@@ -8,12 +8,10 @@ Este repositorio contiene un frontend Vite + React 19 en `frontend/` y una API R
 
 - Requiere Node.js 22 o compatible, PostgreSQL y variables locales en `backend-node/.env` basadas en `backend-node/.env.example`.
 - Comandos desde `backend-node/`: `npm install`, `npm run prisma:generate`, `npm run dev`, `npm start` y `npm test`. Tras tocar `prisma/schema.prisma`, correr `prisma:generate` antes de probar nada.
-- Conserva el contrato, roles y formato de errores descritos en `backend-node/README.md`. No edites `backend/` (Spring Boot antiguo) como backend activo.
+- Conserva el contrato, roles y formato de errores descritos en `backend-node/README.md`.
 - Las operaciones con bloqueos de fila (`FOR UPDATE`) o `pg_advisory_xact_lock` se quedan como SQL crudo (`tx.$queryRaw`/`tx.$executeRaw`) dentro de `prisma.$transaction`; no son un error ni algo a "limpiar" convirtiéndolas a llamadas del ORM — Prisma no las modela.
 - No versionar `.env`, tokens, contraseñas ni datos reales. Usar datos ficticios en verificaciones.
 - Si se modifica comportamiento del backend, verificar `npm test`, carga de la app y flujos funcionales contra base de prueba; no basta con que el servidor inicie.
-
-`backend/` conserva la implementación histórica en Spring Boot. Es referencia archivada y no debe ejecutarse, modificarse ni entregarse como el backend vigente; el backend vigente es `backend-node/`.
 
 ## Commands
 

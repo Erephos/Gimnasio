@@ -73,46 +73,47 @@ export function validIsoDate(value) {
   return !Number.isNaN(date.valueOf()) && date.toISOString().slice(0, 10) === value
 }
 
+// Postgres DATE columns llegan de Prisma como Date de medianoche UTC;
+// las rutas devuelven "AAAA-MM-DD" igual que antes con pg. Tambien acepta
+// un string "AAAA-MM-DD..." ya listo (util en tests y en algunas filas crudas).
+export const toIsoDate = (date) => {
+  if (!date) return date
+  return date instanceof Date ? date.toISOString().slice(0, 10) : String(date).slice(0, 10)
+}
+
 export const fullName = (row, prefix = '') => `${row[`${prefix}nombre`]} ${row[`${prefix}apellido`]}`.trim()
 
 export function mapSocio(row) {
   return {
-    id: Number(row.id), nombreCompleto: `${row.nombre} ${row.apellido}`.trim(), correo: row.correo,
+    id: Number(row.id), usuarioId: Number(row.usuarioId), nombreCompleto: `${row.nombre} ${row.apellido}`.trim(), correo: row.correo,
     dni: row.dni, telefono: row.telefono, genero: row.genero, direccion: row.direccion,
-    contactoEmergencia: row.contacto_emergencia, activo: row.activo, creadoEn: row.creado_en
+    contactoEmergencia: row.contactoEmergencia, activo: row.activo, creadoEn: row.creadoEn
   }
 }
 
 export function mapUsuario(row) {
   return { id: Number(row.id), nombre: row.nombre, apellido: row.apellido, correo: row.correo,
-    rol: row.rol, activo: row.activo, creadoEn: row.creado_en }
+    rol: row.rol, activo: row.activo, creadoEn: row.creadoEn }
 }
 
 export function mapMembresia(row, hoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Lima' })) {
-  return { id: Number(row.id), socioId: Number(row.socio_id), socioNombre: `${row.socio_nombre}`.trim(),
-    planId: Number(row.plan_id), planNombre: row.plan_nombre, fechaInicio: row.fecha_inicio,
-    fechaFin: row.fecha_fin, precioPagado: row.precio_pagado, vigente: row.fecha_inicio <= hoy && hoy < row.fecha_fin,
-    creadaEn: row.creada_en }
+  const fechaInicio = toIsoDate(row.fechaInicio)
+  const fechaFin = toIsoDate(row.fechaFin)
+  return { id: Number(row.id), socioId: Number(row.socioId), socioNombre: `${row.socioNombre}`.trim(),
+    planId: Number(row.planId), planNombre: row.planNombre, fechaInicio, fechaFin,
+    precioPagado: row.precioPagado, vigente: fechaInicio <= hoy && hoy < fechaFin, creadaEn: row.creadaEn }
 }
 
-export async function inTransaction(pool, work) {
-  const client = await pool.connect()
-  try {
-    await client.query('BEGIN')
-    const result = await work(client)
-    await client.query('COMMIT')
-    return result
-  } catch (error) {
-    await client.query('ROLLBACK')
-    throw error
-  } finally {
-    client.release()
-  }
-}
-
-export async function audit(db, userId, action, entity, entityId, detail = null) {
-  await db.query(
-    'INSERT INTO gimnasio.auditoria (usuario_id, accion, entidad, entidad_id, detalle) VALUES ($1, $2, $3, $4, $5)',
-    [userId, action, entity, entityId, detail]
-  )
+// Reemplaza al INSERT crudo en gimnasio.auditoria: recibe el cliente de
+// Prisma (prisma o el tx de una transaccion) en vez del Pool de pg.
+export async function audit(db, usuarioId, accion, entidad, entidadId, detalle = null) {
+  await db.auditoria.create({
+    data: {
+      usuarioId: usuarioId === null || usuarioId === undefined ? null : BigInt(usuarioId),
+      accion,
+      entidad,
+      entidadId: entidadId === null || entidadId === undefined ? null : BigInt(entidadId),
+      detalle
+    }
+  })
 }

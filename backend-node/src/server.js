@@ -1,6 +1,6 @@
 import 'dotenv/config'
 import app from './app.js'
-import pool from './config/database.js'
+import { prisma } from './lib/prisma.js'
 
 if (!process.env.DATABASE_URL) throw new Error('Falta configurar DATABASE_URL en el archivo .env')
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
@@ -16,7 +16,7 @@ const server = app.listen(port, () => {
 async function shutdown(signal) {
   console.log(`Señal ${signal}; cerrando API...`)
   server.close(async () => {
-    await pool.end()
+    await prisma.$disconnect()
     process.exit(0)
   })
 }

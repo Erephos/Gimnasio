@@ -4,13 +4,6 @@ import { homePathFor } from '../../config/roles.js'
 import { recoverPassword, registerPublic, resetPassword } from '../../services/data.js'
 import { useAuth } from './useAuth.js'
 
-const DEMOS = [
-  { label: 'Admin', correo: 'admin@ximedgar.com', password: 'Admin2026!' },
-  { label: 'Recepción', correo: 'recepcion@ximedgar.com', password: 'Recepcion2026!' },
-  { label: 'Entrenador', correo: 'entrenador@ximedgar.com', password: 'Entrenador2026!' },
-  { label: 'Socio', correo: 'sofia@email.com', password: 'Socio2026!' },
-]
-
 export default function LoginPage() {
   const { login, isAuthenticated, user } = useAuth()
   const navigate = useNavigate()
@@ -18,7 +11,10 @@ export default function LoginPage() {
   const [correo, setCorreo] = useState('')
   const [password, setPassword] = useState('')
   const [nombre, setNombre] = useState('')
+  const [apellido, setApellido] = useState('')
+  const [genero, setGenero] = useState('MASCULINO')
   const [dni, setDni] = useState('')
+  const [resetToken, setResetToken] = useState('')
   const [newPass, setNewPass] = useState('')
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
@@ -41,12 +37,12 @@ export default function LoginPage() {
     }
   }
 
-  function handleRegister(e) {
+  async function handleRegister(e) {
     e.preventDefault()
     setError('')
     setInfo('')
     try {
-      registerPublic({ nombre, correo, password, dni })
+      await registerPublic({ nombre, apellido, correo, password, dni, genero })
       setInfo('Cuenta creada. Ya puedes iniciar sesión.')
       setTab('login')
       setPassword('')
@@ -55,13 +51,13 @@ export default function LoginPage() {
     }
   }
 
-  function handleRecover(e) {
+  async function handleRecover(e) {
     e.preventDefault()
     setError('')
     setInfo('')
     try {
-      const r = recoverPassword(correo)
-      setInfo(r.message)
+      await recoverPassword(correo)
+      setInfo('Si el correo esta registrado, se enviaron instrucciones para restablecer la contraseña.')
       setRecoverReady(true)
     } catch (err) {
       setError(err.message)
@@ -69,25 +65,19 @@ export default function LoginPage() {
     }
   }
 
-  function handleReset(e) {
+  async function handleReset(e) {
     e.preventDefault()
     setError('')
     try {
-      resetPassword(correo, newPass)
+      await resetPassword(resetToken, newPass)
       setInfo('Contraseña actualizada. Inicia sesión.')
       setTab('login')
       setRecoverReady(false)
       setNewPass('')
+      setResetToken('')
     } catch (err) {
       setError(err.message)
     }
-  }
-
-  function fillDemo(d) {
-    setCorreo(d.correo)
-    setPassword(d.password)
-    setError('')
-    setTab('login')
   }
 
   return (
@@ -104,10 +94,10 @@ export default function LoginPage() {
           <p className="mb-2 text-xs font-medium uppercase tracking-wider text-slate-500">— Consola de administración</p>
           <h1 className="mb-4 text-4xl font-semibold leading-tight text-white">Tu operación,<br />siempre en control.</h1>
           <p className="max-w-md text-sm leading-relaxed text-slate-400">
-            Socios, membresías y caja conectados en un solo lugar. Demo 100% local — lista para desplegar.
+            Socios, membresías y caja conectados en un solo lugar.
           </p>
         </div>
-        <p className="text-xs text-slate-600">© 2026 ximEdgar Gym · Demo offline</p>
+        <p className="text-xs text-slate-600">© 2026 ximEdgar Gym</p>
       </div>
 
       <div className="flex flex-1 items-center justify-center p-6">
@@ -148,28 +138,25 @@ export default function LoginPage() {
                   {loading ? 'Entrando…' : 'Iniciar sesión →'}
                 </button>
               </form>
-              <div className="mt-8">
-                <p className="mb-3 text-center text-[11px] uppercase tracking-wider text-slate-600">Cuentas demo</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {DEMOS.map((d) => (
-                    <button key={d.label} type="button" onClick={() => fillDemo(d)} className="rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-400 hover:border-blue-500/40 hover:text-blue-400">
-                      {d.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
             </>
           )}
 
           {tab === 'register' && (
             <>
               <h2 className="mb-1 text-xl font-semibold text-white">Crear cuenta de socio</h2>
-              <p className="mb-6 text-sm text-slate-400">Registro local (demo). Plan Full mensual por defecto.</p>
+              <p className="mb-6 text-sm text-slate-400">Tu cuenta queda sin plan asignado; recepción lo asigna al confirmar tu membresía.</p>
               <form onSubmit={handleRegister} className="space-y-3">
-                <input placeholder="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} required className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:outline-none" />
-                <input placeholder="DNI" value={dni} onChange={(e) => setDni(e.target.value)} className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:outline-none" />
+                <div className="grid grid-cols-2 gap-3">
+                  <input placeholder="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} required className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:outline-none" />
+                  <input placeholder="Apellido" value={apellido} onChange={(e) => setApellido(e.target.value)} required className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:outline-none" />
+                </div>
+                <input placeholder="DNI (8 digitos)" value={dni} onChange={(e) => setDni(e.target.value)} required className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:outline-none" />
+                <select value={genero} onChange={(e) => setGenero(e.target.value)} className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:outline-none">
+                  <option value="MASCULINO">Masculino</option>
+                  <option value="FEMENINO">Femenino</option>
+                </select>
                 <input type="email" placeholder="Correo" value={correo} onChange={(e) => setCorreo(e.target.value)} required className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:outline-none" />
-                <input type="password" placeholder="Contraseña (mín. 4)" value={password} onChange={(e) => setPassword(e.target.value)} required className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:outline-none" />
+                <input type="password" placeholder="Contraseña (mín. 8)" value={password} onChange={(e) => setPassword(e.target.value)} required className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:outline-none" />
                 {error && <p className="text-sm text-red-400">{error}</p>}
                 <button type="submit" className="w-full rounded-xl bg-blue-500 py-3 text-sm font-semibold text-white hover:bg-blue-600">Registrarme</button>
               </form>
@@ -179,17 +166,18 @@ export default function LoginPage() {
           {tab === 'recover' && (
             <>
               <h2 className="mb-1 text-xl font-semibold text-white">Recuperar contraseña</h2>
-              <p className="mb-6 text-sm text-slate-400">Flujo simulado (HU recuperación). Sin email real.</p>
+              <p className="mb-6 text-sm text-slate-400">Te enviamos un enlace con un código al correo de tu cuenta.</p>
               <form onSubmit={handleRecover} className="space-y-3">
                 <input type="email" placeholder="Correo de la cuenta" value={correo} onChange={(e) => setCorreo(e.target.value)} required className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:outline-none" />
-                <button type="submit" className="w-full rounded-xl bg-blue-500 py-3 text-sm font-semibold text-white hover:bg-blue-600">Enviar enlace (simulado)</button>
+                <button type="submit" className="w-full rounded-xl bg-blue-500 py-3 text-sm font-semibold text-white hover:bg-blue-600">Enviar enlace</button>
               </form>
               {info && <p className="mt-3 rounded-lg bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">{info}</p>}
               {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
               {recoverReady && (
                 <form onSubmit={handleReset} className="mt-4 space-y-3 border-t border-white/10 pt-4">
-                  <p className="text-xs text-slate-400">Restablecer ahora:</p>
-                  <input type="password" placeholder="Nueva contraseña" value={newPass} onChange={(e) => setNewPass(e.target.value)} required className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:outline-none" />
+                  <p className="text-xs text-slate-400">¿Ya tienes el código del correo? Restablece aquí:</p>
+                  <input placeholder="Código del enlace" value={resetToken} onChange={(e) => setResetToken(e.target.value)} required className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:outline-none" />
+                  <input type="password" placeholder="Nueva contraseña (mín. 8)" value={newPass} onChange={(e) => setNewPass(e.target.value)} required className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:outline-none" />
                   <button type="submit" className="w-full rounded-xl border border-blue-500/40 py-3 text-sm font-medium text-blue-400 hover:bg-blue-500/10">Guardar nueva contraseña</button>
                 </form>
               )}

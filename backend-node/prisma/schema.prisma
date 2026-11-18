@@ -1,0 +1,203 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["gimnasio"]
+}
+
+model Rol {
+  id       BigInt    @id @default(autoincrement())
+  nombre   String    @unique @db.VarChar(30)
+  usuarios Usuario[]
+
+  @@map("roles")
+  @@schema("gimnasio")
+}
+
+model Usuario {
+  id                     BigInt              @id @default(autoincrement())
+  nombre                 String              @db.VarChar(60)
+  apellido               String              @db.VarChar(60)
+  correo                 String              @unique @db.VarChar(100)
+  passwordHash           String              @map("password_hash") @db.VarChar(255)
+  rolId                  BigInt              @map("rol_id")
+  activo                 Boolean             @default(true)
+  creadoEn               DateTime            @default(now()) @map("creado_en") @db.Timestamptz(6)
+  actualizadoEn          DateTime            @default(now()) @map("actualizado_en") @db.Timestamptz(6)
+  asistenciasRegistradas Asistencia[]        @relation("AsistenciaRegistradoPor")
+  auditorias             Auditoria[]
+  entrenador             Entrenador?
+  pagosAnulados          Pago[]              @relation("PagoAnuladoPor")
+  pagosRegistrados       Pago[]              @relation("PagoRegistradoPor")
+  recuperacionTokens     RecuperacionToken[]
+  socio                  Socio?
+  rol                    Rol                 @relation(fields: [rolId], references: [id], onUpdate: NoAction)
+
+  @@map("usuarios")
+  @@schema("gimnasio")
+}
+
+model Socio {
+  id                 BigInt       @id @default(autoincrement())
+  usuarioId          BigInt       @unique @map("usuario_id")
+  dni                String       @unique @db.VarChar(8)
+  telefono           String?      @db.VarChar(9)
+  genero             String       @db.VarChar(10)
+  direccion          String?      @db.VarChar(150)
+  contactoEmergencia String?      @map("contacto_emergencia") @db.VarChar(100)
+  creadoEn           DateTime     @default(now()) @map("creado_en") @db.Timestamptz(6)
+  rostroDescriptor   Json?        @map("rostro_descriptor")
+  asistencias        Asistencia[]
+  membresias         Membresia[]
+  pagos              Pago[]
+  reservas           Reserva[]
+  usuario            Usuario      @relation(fields: [usuarioId], references: [id], onUpdate: NoAction)
+
+  @@map("socios")
+  @@schema("gimnasio")
+}
+
+model Entrenador {
+  id           BigInt   @id @default(autoincrement())
+  usuarioId    BigInt   @unique @map("usuario_id")
+  dni          String   @unique @db.VarChar(8)
+  telefono     String?  @db.VarChar(9)
+  especialidad String   @db.VarChar(50)
+  creadoEn     DateTime @default(now()) @map("creado_en") @db.Timestamptz(6)
+  clases       Clase[]
+  usuario      Usuario  @relation(fields: [usuarioId], references: [id], onUpdate: NoAction)
+
+  @@map("entrenadores")
+  @@schema("gimnasio")
+}
+
+model Plan {
+  id           BigInt      @id @default(autoincrement())
+  nombre       String      @unique @db.VarChar(30)
+  precio       Decimal     @db.Decimal(10, 2)
+  duracionDias Int         @map("duracion_dias")
+  activo       Boolean     @default(true)
+  membresias   Membresia[]
+
+  @@map("planes")
+  @@schema("gimnasio")
+}
+
+model Membresia {
+  id           BigInt   @id @default(autoincrement())
+  socioId      BigInt   @map("socio_id")
+  planId       BigInt   @map("plan_id")
+  fechaInicio  DateTime @map("fecha_inicio") @db.Date
+  fechaFin     DateTime @map("fecha_fin") @db.Date
+  precioPagado Decimal  @map("precio_pagado") @db.Decimal(10, 2)
+  creadaEn     DateTime @default(now()) @map("creada_en") @db.Timestamptz(6)
+  plan         Plan     @relation(fields: [planId], references: [id], onUpdate: NoAction)
+  socio        Socio    @relation(fields: [socioId], references: [id], onUpdate: NoAction)
+  pagos        Pago[]
+
+  @@index([socioId, fechaFin], map: "idx_membresias_socio_fin")
+  @@map("membresias")
+  @@schema("gimnasio")
+}
+
+model Pago {
+  id              BigInt    @id @default(autoincrement())
+  socioId         BigInt    @map("socio_id")
+  membresiaId     BigInt    @map("membresia_id")
+  monto           Decimal   @db.Decimal(10, 2)
+  metodo          String    @db.VarChar(15)
+  estado          String    @default("REGISTRADO") @db.VarChar(10)
+  fechaPago       DateTime  @default(now()) @map("fecha_pago") @db.Timestamptz(6)
+  registradoPorId BigInt    @map("registrado_por")
+  anuladoPorId    BigInt?   @map("anulado_por")
+  anuladoEn       DateTime? @map("anulado_en") @db.Timestamptz(6)
+  motivoAnulacion String?   @map("motivo_anulacion") @db.VarChar(200)
+  anuladoPor      Usuario?  @relation("PagoAnuladoPor", fields: [anuladoPorId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  membresia       Membresia @relation(fields: [membresiaId], references: [id], onUpdate: NoAction)
+  registradoPor   Usuario   @relation("PagoRegistradoPor", fields: [registradoPorId], references: [id], onUpdate: NoAction)
+  socio           Socio     @relation(fields: [socioId], references: [id], onUpdate: NoAction)
+
+  @@index([fechaPago], map: "idx_pagos_fecha")
+  @@index([socioId], map: "idx_pagos_socio")
+  @@map("pagos")
+  @@schema("gimnasio")
+}
+
+model Asistencia {
+  id              BigInt   @id @default(autoincrement())
+  socioId         BigInt   @map("socio_id")
+  fecha           DateTime @default(dbgenerated("((now() AT TIME ZONE 'America/Lima'::text))::date")) @db.Date
+  horaEntrada     DateTime @default(now()) @map("hora_entrada") @db.Timestamptz(6)
+  registradoPorId BigInt   @map("registrado_por")
+  registradoPor   Usuario  @relation("AsistenciaRegistradoPor", fields: [registradoPorId], references: [id], onUpdate: NoAction)
+  socio           Socio    @relation(fields: [socioId], references: [id], onUpdate: NoAction)
+
+  @@unique([socioId, fecha], map: "uq_asistencias_socio_fecha")
+  @@index([fecha], map: "idx_asistencias_fecha")
+  @@map("asistencias")
+  @@schema("gimnasio")
+}
+
+model Clase {
+  id           BigInt     @id @default(autoincrement())
+  disciplina   String     @db.VarChar(30)
+  entrenadorId BigInt     @map("entrenador_id")
+  aula         String     @db.VarChar(30)
+  inicio       DateTime   @db.Timestamptz(6)
+  fin          DateTime   @db.Timestamptz(6)
+  aforo        Int
+  activa       Boolean    @default(true)
+  creadaEn     DateTime   @default(now()) @map("creada_en") @db.Timestamptz(6)
+  entrenador   Entrenador @relation(fields: [entrenadorId], references: [id], onUpdate: NoAction)
+  reservas     Reserva[]
+
+  @@map("clases")
+  @@schema("gimnasio")
+}
+
+model Reserva {
+  id        BigInt    @id @default(autoincrement())
+  claseId   BigInt    @map("clase_id")
+  socioId   BigInt    @map("socio_id")
+  estado    String    @default("RESERVADA") @db.VarChar(10)
+  asistioEn DateTime? @map("asistio_en") @db.Timestamptz(6)
+  creadaEn  DateTime  @default(now()) @map("creada_en") @db.Timestamptz(6)
+  clase     Clase     @relation(fields: [claseId], references: [id], onUpdate: NoAction)
+  socio     Socio     @relation(fields: [socioId], references: [id], onUpdate: NoAction)
+
+  @@index([socioId], map: "idx_reservas_socio")
+  @@map("reservas")
+  @@schema("gimnasio")
+}
+
+model RecuperacionToken {
+  id        BigInt    @id @default(autoincrement())
+  usuarioId BigInt    @map("usuario_id")
+  tokenHash String    @unique @map("token_hash") @db.VarChar(64)
+  expiraEn  DateTime  @map("expira_en") @db.Timestamptz(6)
+  usadoEn   DateTime? @map("usado_en") @db.Timestamptz(6)
+  creadoEn  DateTime  @default(now()) @map("creado_en") @db.Timestamptz(6)
+  usuario   Usuario   @relation(fields: [usuarioId], references: [id], onUpdate: NoAction)
+
+  @@map("recuperacion_tokens")
+  @@schema("gimnasio")
+}
+
+model Auditoria {
+  id        BigInt   @id @default(autoincrement())
+  usuarioId BigInt?  @map("usuario_id")
+  accion    String   @db.VarChar(30)
+  entidad   String   @db.VarChar(30)
+  entidadId BigInt?  @map("entidad_id")
+  detalle   String?  @db.VarChar(500)
+  fecha     DateTime @default(now()) @db.Timestamptz(6)
+  usuario   Usuario? @relation(fields: [usuarioId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@index([fecha], map: "idx_auditoria_fecha")
+  @@index([usuarioId, fecha], map: "idx_auditoria_usuario_fecha")
+  @@map("auditoria")
+  @@schema("gimnasio")
+}

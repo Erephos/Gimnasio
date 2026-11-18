@@ -36,7 +36,8 @@ create table socios(
                          						constraint ck_socios_genero check (genero in ('MASCULINO', 'FEMENINO')),
     direccion            			varchar(150),
     contacto_emergencia  varchar(100),
-    creado_en            			timestamptz  					not null default now()
+    creado_en            			timestamptz  					not null default now(),
+    rostro_descriptor    jsonb
 );
 
 create table planes(

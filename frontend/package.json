@@ -10,6 +10,8 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "face-api.js": "^0.22.2",
+    "microsoft-cognitiveservices-speech-sdk": "^1.53.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.1.0"
@@ -21,7 +23,7 @@
     "vite": "^6.0.0",
     "vitest": "^4.1.12"
   },
-  "description": "React 19 + Vite + Tailwind 4. **100% offline** (mock en localStorage).",
+  "description": "React 19 + Vite + Tailwind 4. Conectado a la API real (backend-node).",
   "main": "vite.config.js",
   "keywords": [],
   "author": "",

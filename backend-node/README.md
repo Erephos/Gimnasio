@@ -1,18 +1,24 @@
 # API del gimnasio (Node.js)
 
-Backend REST activo con Node.js 22, Express y PostgreSQL. Mantiene el contrato de la API previa para conservar la integración prevista con el frontend. El esquema existente `gimnasio` es la fuente de verdad: esta API no crea ni altera tablas. `../backend/` contiene la implementación histórica en Spring Boot y ya no es el backend activo.
+Backend REST activo con Node.js 22, Express, **Prisma** y PostgreSQL. Mantiene el contrato de la API previa para conservar la integración prevista con el frontend. El esquema `gimnasio` sigue siendo la fuente de verdad (ver `../SQL-Gimnasio.sql`); Prisma es la capa de acceso a datos, no quien decide la estructura de las tablas. `../backend/` contiene la implementación histórica en Spring Boot y ya no es el backend activo.
+
+> **Antes migraba con `pg` (SQL crudo); ahora usa Prisma.** `../SQL-Gimnasio.sql` no estaba versionado en el repo — se reconstruyó leyendo cada consulta de `src/routes/*.js`. Si ya existe una base en Neon funcionando, corran `npx prisma db pull` contra ella para que `prisma/schema.prisma` se corrija solo con la estructura real antes de confiar en esta reconstrucción.
 
 ## Ejecutar localmente
 
-1. Desde `backend-node/`, copia `.env.example` a `.env`. Mantén `.env` privado y fuera de Git. Configura `DATABASE_URL` con la URL PostgreSQL y `JWT_SECRET` aleatorio de al menos 32 caracteres. El esquema es `gimnasio` y está fijado en las consultas; configura `CORS_ORIGINS` con el origen del frontend.
-2. Instala dependencias e inicia:
+1. Desde `backend-node/`, copia `.env.example` a `.env`. Mantén `.env` privado y fuera de Git. Configura `DATABASE_URL` con la URL PostgreSQL y `JWT_SECRET` aleatorio de al menos 32 caracteres. El esquema es `gimnasio`; configura `CORS_ORIGINS` con el origen del frontend.
+2. Si la base todavía no existe, aplica `../SQL-Gimnasio.sql` una vez (crea el esquema, las tablas y los roles). Si ya existe, pasa al paso 3.
+3. Instala dependencias, genera el cliente de Prisma e inicia:
 
 ```bash
 npm install
+npm run prisma:generate
 npm run dev
 ```
 
-3. Comprueba `GET http://localhost:8080/api/health`; debe responder `{"estado":"ok","baseDatos":"conectada"}`.
+4. Comprueba `GET http://localhost:8080/api/health`; debe responder `{"estado":"ok","baseDatos":"conectada"}`.
+
+Comandos de Prisma disponibles: `npm run prisma:generate` (regenerar el cliente tras tocar el schema), `npm run prisma:migrate` (crear y aplicar una migración), `npm run prisma:studio` (UI para ver/editar datos).
 
 Configura `APP_MAIL_ENABLED=true`, `APP_MAIL_FROM`, `APP_MAIL_RESET_URL`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME` y `MAIL_PASSWORD` para habilitar la recuperación por correo. Si se deja desactivada, la API responde de forma genérica y no revela si un correo existe.
 
@@ -68,7 +74,7 @@ Configura `APP_MAIL_ENABLED=true`, `APP_MAIL_FROM`, `APP_MAIL_RESET_URL`, `MAIL_
 - Contraseñas se guardan con bcrypt; los tokens son JWT HS256, duran 30 minutos por defecto y verifican la cuenta/rol vigente en cada petición.
 - La lógica de negocio usa el esquema `gimnasio` de forma explícita en SQL. No se envía `search_path` como parámetro de inicio, porque el endpoint agrupado de Neon usa PgBouncer.
 - Fechas de negocio se calculan en `America/Lima`; timestamps se devuelven en ISO-8601.
-- Operaciones compuestas y de concurrencia usan transacciones; bloqueos de fila protegen pagos y membresías, y bloqueos transaccionales protegen el aforo de clases y conflictos de horarios.
+- Operaciones compuestas y de concurrencia usan `prisma.$transaction`; los bloqueos de fila (`FOR UPDATE`) y los `pg_advisory_xact_lock` que protegen pagos, membresías, aforo de clases y conflictos de horario se mantienen como SQL crudo dentro de esas transacciones (`tx.$queryRaw`/`tx.$executeRaw`) — Prisma no los modela por su API de modelos.
 
 ## Configuración del frontend
 

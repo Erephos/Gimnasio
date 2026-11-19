@@ -146,7 +146,7 @@ export default function LoginPage() {
               <h2 className="mb-1 text-xl font-semibold text-white">Crear cuenta de socio</h2>
               <p className="mb-6 text-sm text-slate-400">Tu cuenta queda sin plan asignado; recepción lo asigna al confirmar tu membresía.</p>
               <form onSubmit={handleRegister} className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <input placeholder="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} required className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:outline-none" />
                   <input placeholder="Apellido" value={apellido} onChange={(e) => setApellido(e.target.value)} required className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:outline-none" />
                 </div>

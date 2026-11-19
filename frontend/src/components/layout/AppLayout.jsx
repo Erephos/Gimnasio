@@ -1,12 +1,15 @@
+import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { NAV_ITEMS, ROLE_LABELS, homePathFor } from '../../config/roles.js'
 import { useAuth } from '../../features/auth/useAuth.js'
 import { ICONS } from '../ui/icons.jsx'
 import { IconLogout } from '../ui/icons.jsx'
 
+
 export default function AppLayout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const [menuOpen, setMenuOpen] = useState(false)
   const items = NAV_ITEMS.filter((i) => i.roles.includes(user.rol))
 
   function handleLogout() {
@@ -17,7 +20,14 @@ export default function AppLayout() {
   return (
     <div className="flex min-h-screen bg-[#0b0f1a] text-slate-200">
       {/* Sidebar */}
-      <aside className="flex w-60 shrink-0 flex-col border-r border-white/5 bg-[#0d121f]">
+      {menuOpen && (
+        <div className="fixed inset-0 z-30 bg-black/60 md:hidden" onClick={() => setMenuOpen(false)} />
+      )}
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 flex w-60 shrink-0 flex-col border-r border-white/5 bg-[#0d121f] transition-transform duration-200 md:static md:translate-x-0 ${
+          menuOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
         <div className="flex items-center gap-2.5 px-5 py-5">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500 text-sm font-bold text-white">
             xE
@@ -41,6 +51,7 @@ export default function AppLayout() {
               <NavLink
                 key={item.to}
                 to={item.to}
+                onClick={() => setMenuOpen(false)}
                 className={({ isActive }) =>
                   `flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] transition ${
                     isActive
@@ -79,7 +90,17 @@ export default function AppLayout() {
 
       {/* Main */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 items-center gap-4 border-b border-white/5 bg-[#0d121f]/80 px-6 backdrop-blur">
+        <header className="flex h-14 items-center gap-3 border-b border-white/5 bg-[#0d121f]/80 px-3 backdrop-blur md:gap-4 md:px-6">
+          <button
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            className="rounded-lg p-2 text-slate-300 hover:bg-white/5 md:hidden"
+            aria-label="Abrir menú"
+          >
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
           <div className="relative flex-1 max-w-md">
             <input
               type="search"
@@ -88,7 +109,7 @@ export default function AppLayout() {
             />
             <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
           </div>
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto hidden items-center gap-3 md:flex">
             <span className="rounded-full bg-amber-500/15 px-2.5 py-1 text-[11px] font-medium text-amber-400">
               12 membresías vencen en 3 días
             </span>
@@ -97,7 +118,7 @@ export default function AppLayout() {
             </span>
           </div>
         </header>
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-3 md:p-6">
           <Outlet />
         </main>
       </div>

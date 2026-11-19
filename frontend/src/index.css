@@ -30,3 +30,8 @@ html, body, #root {
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
 
 input, select, button, textarea { font-family: inherit; }
+
+/* Móvil: 16px evita el zoom automático de iOS al enfocar un campo */
+@media (max-width: 767px) {
+  input, select, textarea { font-size: 16px; }
+}

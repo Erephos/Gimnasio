@@ -27,7 +27,8 @@ export default function AlertasPage() {
         ) : alertas.length === 0 ? (
           <p className="p-8 text-center text-sm text-slate-500">No hay alertas pendientes.</p>
         ) : (
-          <table className="w-full text-left text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[600px] text-left text-sm">
             <thead>
               <tr className="border-b border-white/5 text-[11px] uppercase text-slate-500">
                 <th className="px-5 py-3">Socio</th>
@@ -55,6 +56,7 @@ export default function AlertasPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

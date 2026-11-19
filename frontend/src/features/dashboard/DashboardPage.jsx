@@ -69,7 +69,8 @@ export default function DashboardPage() {
             <div className="border-b border-white/5 px-5 py-4">
               <h2 className="text-sm font-semibold text-white">Socios recientes</h2>
             </div>
-            <table className="w-full text-left text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[600px] text-left text-sm">
               <thead>
                 <tr className="border-b border-white/5 text-[11px] uppercase text-slate-500">
                   <th className="px-5 py-3">Socio</th>
@@ -94,6 +95,7 @@ export default function DashboardPage() {
                 })}
               </tbody>
             </table>
+            </div>
           </div>
         </>
       )}

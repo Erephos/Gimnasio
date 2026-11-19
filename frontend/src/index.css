@@ -31,7 +31,139 @@ html, body, #root {
 
 input, select, button, textarea { font-family: inherit; }
 
-/* Móvil: 16px evita el zoom automático de iOS al enfocar un campo */
+/*
+ * Botones: aspecto de botón real + área táctil (mín. ~44px en móvil).
+ * Aplica a los patrones Tailwind que ya usa el proyecto (bg-blue-500, etc.).
+ */
+button {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  cursor: pointer;
+}
+
+/* Primarios (azul) */
+button.bg-blue-500,
+a.bg-blue-500 {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.75rem;
+  padding: 0.65rem 1.15rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.2;
+  border-radius: 0.75rem;
+  color: #fff !important;
+  background: linear-gradient(180deg, #4b8fff 0%, #2563eb 100%) !important;
+  border: 1px solid rgba(147, 197, 253, 0.35);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.18) inset,
+    0 4px 14px rgba(37, 99, 235, 0.4);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+}
+
+button.bg-blue-500:hover,
+a.bg-blue-500:hover {
+  filter: brightness(1.06);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.22) inset,
+    0 6px 18px rgba(37, 99, 235, 0.5);
+}
+
+button.bg-blue-500:active,
+a.bg-blue-500:active {
+  transform: scale(0.98);
+  filter: brightness(0.96);
+}
+
+button.bg-blue-500:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Secundarios / outline */
+button.border-white\/10:not(.bg-blue-500):not(.bg-amber-500):not(.bg-amber-500\/80):not(.bg-red-500),
+button.border.border-white\/10 {
+  min-height: 2.75rem;
+  padding: 0.6rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset;
+  transition: background 0.12s ease, transform 0.12s ease;
+}
+
+button.border-white\/10:active {
+  transform: scale(0.98);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Ámbar (acciones de membresía / aviso) */
+button.bg-amber-500,
+button.bg-amber-500\/80 {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.65rem 1.15rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 0.75rem;
+  color: #fff !important;
+  background: linear-gradient(180deg, #fbbf24 0%, #d97706 100%) !important;
+  border: 1px solid rgba(253, 230, 138, 0.35);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.2) inset,
+    0 4px 12px rgba(217, 119, 6, 0.35);
+}
+
+/* Enlaces que actúan como CTA primario */
+a.rounded-lg.bg-blue-500,
+a.rounded-xl.bg-blue-500 {
+  text-decoration: none;
+}
+
+/* Tabs (login / asistencia): un poco más altos en móvil, sin parecer texto plano */
+button.flex-1.rounded-lg {
+  min-height: 2.5rem;
+  font-weight: 600;
+}
+
+/* Icon buttons (menú hamburguesa, etc.): área táctil sin romper el layout */
+button.p-2,
+button\[aria-label\] {
+  min-height: 2.5rem;
+  min-width: 2.5rem;
+}
+
+/* Móvil: 16px evita zoom iOS; botones aún más cómodos */
 @media (max-width: 767px) {
   input, select, textarea { font-size: 16px; }
+
+  button.bg-blue-500,
+  a.bg-blue-500,
+  button.bg-amber-500,
+  button.bg-amber-500\/80 {
+    min-height: 3rem;
+    width: auto;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.9375rem;
+    border-radius: 0.875rem;
+  }
+
+  /* CTAs full-width en formularios / modales */
+  button.w-full.bg-blue-500,
+  button.w-full.bg-amber-500,
+  button.w-full.bg-amber-500\/80,
+  button.flex-1.bg-blue-500 {
+    width: 100%;
+  }
+
+  button.border-white\/10 {
+    min-height: 2.75rem;
+  }
 }

@@ -1,14 +1,21 @@
 import { useEffect, useState } from 'react'
 import { ROLE_LABELS, ROLES } from '../../config/roles.js'
-import { changeUserRole, listUsers, toggleUserActive } from '../../services/data.js'
+import { changeUserRole, createStaffUser, listUsers, toggleUserActive } from '../../services/data.js'
 import { useAuth } from '../auth/useAuth.js'
 
 const ROLES_EDITABLES = [ROLES.ADMIN, ROLES.RECEPCION]
+
+const FORM_VACIO = { nombre: '', apellido: '', correo: '', password: '', rol: ROLES.RECEPCION }
+const inputCls = 'w-full rounded border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-slate-500'
 
 export default function AdminPage() {
   const { user } = useAuth()
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
+  const [mostrarForm, setMostrarForm] = useState(false)
+  const [form, setForm] = useState(FORM_VACIO)
+  const [guardando, setGuardando] = useState(false)
+  const [aviso, setAviso] = useState(null)
 
   function reload() {
     setLoading(true)
@@ -16,6 +23,27 @@ export default function AdminPage() {
   }
 
   useEffect(reload, [])
+
+  function handleCampo(e) {
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
+    setAviso(null)
+  }
+
+  async function handleCrear(e) {
+    e.preventDefault()
+    setGuardando(true)
+    setAviso(null)
+    try {
+      const creado = await createStaffUser(form)
+      setAviso({ ok: true, texto: `Cuenta creada: ${creado.correo} (${ROLE_LABELS[creado.rol]}).` })
+      setForm(FORM_VACIO)
+      reload()
+    } catch (err) {
+      setAviso({ ok: false, texto: err.message })
+    } finally {
+      setGuardando(false)
+    }
+  }
 
   async function handleRol(u, rol) {
     try {
@@ -58,9 +86,34 @@ export default function AdminPage() {
       </div>
 
       <div className="rounded-2xl border border-white/5 bg-white/[0.03]">
-        <div className="border-b border-white/5 px-5 py-4">
+        <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
           <h2 className="text-sm font-semibold text-white">Usuarios del sistema</h2>
+          <button
+            type="button"
+            onClick={() => { setMostrarForm((v) => !v); setAviso(null) }}
+            className="rounded-lg bg-emerald-500 px-3 py-2 text-xs font-semibold text-slate-950 hover:bg-emerald-400"
+          >
+            {mostrarForm ? 'Cancelar' : '+ Nueva cuenta de personal'}
+          </button>
         </div>
+
+        {mostrarForm && (
+          <form onSubmit={handleCrear} className="grid gap-3 border-b border-white/5 px-5 py-4 sm:grid-cols-2">
+            <input name="nombre" value={form.nombre} onChange={handleCampo} placeholder="Nombre" required maxLength={60} className={inputCls} />
+            <input name="apellido" value={form.apellido} onChange={handleCampo} placeholder="Apellido" required maxLength={60} className={inputCls} />
+            <input name="correo" type="email" value={form.correo} onChange={handleCampo} placeholder="Correo" required maxLength={100} className={inputCls} />
+            <input name="password" type="password" value={form.password} onChange={handleCampo} placeholder="Contraseña temporal (mín. 8)" required minLength={8} maxLength={100} autoComplete="new-password" className={inputCls} />
+            <select name="rol" value={form.rol} onChange={handleCampo} className={inputCls}>
+              {ROLES_EDITABLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+            </select>
+            <button type="submit" disabled={guardando} className="rounded-lg bg-emerald-500 px-3 py-2 text-sm font-semibold text-slate-950 hover:bg-emerald-400 disabled:opacity-60">
+              {guardando ? 'Creando…' : 'Crear cuenta'}
+            </button>
+            {aviso && (
+              <p role={aviso.ok ? 'status' : 'alert'} className={`text-xs sm:col-span-2 ${aviso.ok ? 'text-emerald-400' : 'text-red-400'}`}>{aviso.texto}</p>
+            )}
+          </form>
+        )}
         <div className="overflow-x-auto">
         <table className="w-full min-w-[600px] text-left text-sm">
           <thead>

@@ -148,6 +148,12 @@ export async function listUsers({ page = 0, size = 20, rol } = {}) {
   return api.get(`/usuarios?${params}`)
 }
 
+export async function createStaffUser({ nombre, apellido, correo, password, rol }) {
+  return api.post('/usuarios', {
+    nombre: nombre?.trim(), apellido: apellido?.trim(), correo: correo?.trim(), password, rol,
+  })
+}
+
 export async function toggleUserActive(userId, activo) {
   return api.patch(`/usuarios/${userId}/estado?activo=${activo}`)
 }

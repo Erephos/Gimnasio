@@ -32,6 +32,18 @@ html, body, #root {
 input, select, button, textarea { font-family: inherit; }
 
 /*
+ * Modo oscuro nativo: el menú de los <select>, el calendario de type="date"
+ * y las barras de scroll se dibujan oscuros en vez de con fondo blanco.
+ */
+:root { color-scheme: dark; }
+
+/* Respaldo para navegadores que ignoran color-scheme en <option> (Firefox/Windows) */
+select option {
+  background-color: #111827; /* --color-surface */
+  color: #e2e8f0;
+}
+
+/*
  * Botones: aspecto de botón real + área táctil (mín. ~44px en móvil).
  * Aplica a los patrones Tailwind que ya usa el proyecto (bg-blue-500, etc.).
  */

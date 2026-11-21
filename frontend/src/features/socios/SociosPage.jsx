@@ -5,6 +5,16 @@ import { createSocio, crearMembresia, deactivateSocio, enrolarRostro, getMembres
 const emptyForm = { nombre: '', apellido: '', dni: '', correo: '', telefono: '', genero: 'MASCULINO', password: 'Socio2026!' }
 const emptyEdit = { correo: '', telefono: '', direccion: '', contactoEmergencia: '' }
 
+// Botones de acción de la tabla: botón real en PC y en móvil (4 columnas, área táctil cómoda).
+const ACTION_BASE = 'inline-flex items-center justify-center rounded-md border px-2.5 py-1 text-xs font-medium transition active:scale-95 max-md:min-h-10'
+const ACTION_TONES = {
+  emerald: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20',
+  purple: 'border-purple-500/30 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20',
+  blue: 'border-blue-500/30 bg-blue-500/10 text-blue-300 hover:bg-blue-500/20',
+  red: 'border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20',
+}
+const actionBtn = (tone) => `${ACTION_BASE} ${ACTION_TONES[tone]}`
+
 export default function SociosPage() {
   const [socios, setSocios] = useState([])
   const [total, setTotal] = useState(0)
@@ -132,8 +142,8 @@ export default function SociosPage() {
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por DNI o nombre" className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none" />
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead>
+          <table className="block w-full text-left text-sm md:table">
+            <thead className="hidden md:table-header-group">
               <tr className="border-b border-white/5 text-[11px] uppercase text-slate-500">
                 <th className="px-5 py-3">Socio</th>
                 <th className="px-3 py-3">DNI</th>
@@ -143,7 +153,7 @@ export default function SociosPage() {
                 <th className="px-3 py-3">Acciones</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="block md:table-row-group">
               {loading ? (
                 <tr><td className="px-5 py-6 text-slate-500" colSpan={6}>Cargando…</td></tr>
               ) : socios.length === 0 ? (
@@ -153,25 +163,27 @@ export default function SociosPage() {
                 const badge = vigente ? 'bg-emerald-500/15 text-emerald-400' : s.membresia ? 'bg-red-500/15 text-red-400' : 'bg-white/10 text-slate-400'
                 const label = vigente ? 'Vigente' : s.membresia ? 'Vencida' : 'Sin membresía'
                 return (
-                  <tr key={s.id} className={`border-b border-white/5 ${!s.activo ? 'opacity-50' : ''}`}>
-                    <td className="px-5 py-3 font-medium text-white">{s.nombreCompleto}</td>
-                    <td className="px-3 py-3 font-mono text-xs text-slate-400">{s.dni}</td>
-                    <td className="px-3 py-3 text-slate-300">{s.membresia?.planNombre || '—'}</td>
-                    <td className="px-3 py-3"><span className={`rounded-full px-2 py-0.5 text-[11px] ${badge}`}>{label}</span></td>
-                    <td className="px-3 py-3">
+                  <tr key={s.id} className={`flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-white/5 px-4 py-3 md:table-row md:px-0 md:py-0 ${!s.activo ? 'opacity-50' : ''}`}>
+                    <td className="px-5 py-3 font-medium text-white max-md:w-full max-md:p-0 md:table-cell">{s.nombreCompleto}</td>
+                    <td className="px-3 py-3 font-mono text-xs text-slate-400 max-md:p-0">{s.dni}</td>
+                    <td className="px-3 py-3 text-slate-300 max-md:p-0">{s.membresia?.planNombre || '—'}</td>
+                    <td className="px-3 py-3 max-md:p-0"><span className={`rounded-full px-2 py-0.5 text-[11px] ${badge}`}>{label}</span></td>
+                    <td className="px-3 py-3 max-md:p-0">
                       <span className={`rounded-full px-2 py-0.5 text-[11px] ${s.activo ? 'bg-emerald-500/15 text-emerald-400' : 'bg-slate-500/15 text-slate-400'}`}>
                         {s.activo ? 'Activa' : 'Dada de baja'}
                       </span>
                     </td>
-                    <td className="px-3 py-3 space-x-2 text-xs">
-                      <button type="button" onClick={() => openPlan(s)} className="text-emerald-400 hover:underline">Plan</button>
-                      <button type="button" onClick={() => openRostro(s)} className="text-purple-400 hover:underline">Rostro</button>
-                      <button type="button" onClick={() => openEdit(s)} className="text-blue-400 hover:underline">Editar</button>
-                      {s.activo ? (
-                        <button type="button" onClick={() => handleBaja(s.id)} className="text-red-400 hover:underline">Baja</button>
-                      ) : (
-                        <button type="button" onClick={() => handleReactivar(s)} className="text-emerald-400 hover:underline">Reactivar</button>
-                      )}
+                    <td className="px-3 py-3 max-md:w-full max-md:p-0">
+                      <div className="flex flex-wrap gap-1.5 max-md:grid max-md:grid-cols-4">
+                        <button type="button" onClick={() => openPlan(s)} className={actionBtn('emerald')}>Plan</button>
+                        <button type="button" onClick={() => openRostro(s)} className={actionBtn('purple')}>Rostro</button>
+                        <button type="button" onClick={() => openEdit(s)} className={actionBtn('blue')}>Editar</button>
+                        {s.activo ? (
+                          <button type="button" onClick={() => handleBaja(s.id)} className={actionBtn('red')}>Baja</button>
+                        ) : (
+                          <button type="button" onClick={() => handleReactivar(s)} className={actionBtn('emerald')}>Reactivar</button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 )

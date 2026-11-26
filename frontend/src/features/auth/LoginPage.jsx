@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
-import { Dumbbell } from 'lucide-react'
+import { Dumbbell, Trophy } from 'lucide-react'
 import { homePathFor } from '../../config/roles.js'
 import { recoverPassword, registerPublic, resetPassword } from '../../services/data.js'
 import { useAuth } from './useAuth.js'
@@ -191,6 +191,14 @@ export default function LoginPage() {
           >
             <Dumbbell size={16} />
             ¿Nos visitas en el stand? Prueba el reto de sentadillas
+          </Link>
+
+          <Link
+            to="/reto-sentadillas/ranking"
+            className="mt-2 flex items-center justify-center gap-2 rounded-xl border border-white/10 px-4 py-3 text-center text-sm font-medium text-slate-300 hover:bg-white/5"
+          >
+            <Trophy size={16} />
+            Ver ranking del reto
           </Link>
         </div>
       </div>

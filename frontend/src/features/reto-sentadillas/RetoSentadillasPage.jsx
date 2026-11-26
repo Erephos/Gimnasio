@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { CheckCircle2, Dumbbell } from 'lucide-react'
+import { CheckCircle2, Dumbbell, SwitchCamera, Trophy } from 'lucide-react'
 import { listRetoSentadillasTop, submitRetoSentadillas } from '../../services/data.js'
 import { createSquatCounter, kneeAngleFromLandmarks, loadPoseLandmarker } from '../../services/pose.js'
 
@@ -41,6 +41,7 @@ export default function RetoSentadillasPage() {
   const [error, setError] = useState('')
   const [guardado, setGuardado] = useState(false)
   const [top, setTop] = useState([])
+  const [facing, setFacing] = useState('user') // user = selfie, environment = trasera
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
 
@@ -58,7 +59,9 @@ export default function RetoSentadillasPage() {
       try {
         const [landmarker, mediaStream] = await Promise.all([
           loadPoseLandmarker(),
-          navigator.mediaDevices.getUserMedia({ video: { width: 480, height: 360 }, audio: false })
+          // Resolucion en vertical: con la camara en horizontal el cuerpo completo
+          // solo entraba alejandose varios metros del stand.
+          navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: facing }, width: { ideal: 480 }, height: { ideal: 854 } }, audio: false })
         ])
         if (cancelled) { mediaStream.getTracks().forEach((t) => t.stop()); return }
         stream = mediaStream
@@ -121,7 +124,7 @@ export default function RetoSentadillasPage() {
       cancelAnimationFrame(rafId)
       stream?.getTracks().forEach((t) => t.stop())
     }
-  }, [attempt])
+  }, [attempt, facing])
 
   useEffect(() => {
     if (phase !== 'finished') return
@@ -167,6 +170,17 @@ export default function RetoSentadillasPage() {
                 <label className="mb-1.5 block text-xs font-medium text-slate-400">Tu nombre o apodo</label>
                 <input value={nombre} onChange={(e) => setNombre(e.target.value)} required maxLength={60} placeholder="Ej. Juan P." className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-blue-500/50 focus:outline-none" />
               </div>
+              <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+                <span className="text-xs text-slate-400">Cámara: {facing === 'user' ? 'selfie (frontal)' : 'trasera'}</span>
+                <button
+                  type="button"
+                  onClick={() => setFacing((f) => (f === 'user' ? 'environment' : 'user'))}
+                  className="flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-white/10"
+                >
+                  <SwitchCamera size={14} />
+                  Cambiar
+                </button>
+              </div>
               {error && <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-400">{error}</p>}
               <button type="submit" className="w-full rounded-xl bg-blue-500 py-3 text-sm font-semibold text-white hover:bg-blue-600">
                 Empezar reto →
@@ -177,7 +191,10 @@ export default function RetoSentadillasPage() {
 
         {phase !== 'form' && (
           <div className="space-y-4">
-            <div className="relative mx-auto aspect-[4/3] w-full overflow-hidden rounded-2xl border border-white/10 bg-black" style={{ transform: 'scaleX(-1)' }}>
+            <div
+              className="relative mx-auto aspect-[3/4] w-full overflow-hidden rounded-2xl border border-white/10 bg-black"
+              style={{ transform: facing === 'user' ? 'scaleX(-1)' : 'none' }}
+            >
               <video ref={videoRef} autoPlay muted playsInline className="h-full w-full object-cover" />
               <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
             </div>
@@ -230,6 +247,10 @@ export default function RetoSentadillasPage() {
                 <button type="button" onClick={jugarDeNuevo} className="w-full rounded-xl bg-blue-500 py-3 text-sm font-semibold text-white hover:bg-blue-600">
                   Jugar de nuevo
                 </button>
+                <Link to="/reto-sentadillas/ranking" className="flex items-center justify-center gap-1.5 text-xs text-slate-400 hover:text-slate-200">
+                  <Trophy size={14} />
+                  Ver ranking completo
+                </Link>
               </div>
             )}
           </div>

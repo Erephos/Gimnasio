@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { CheckCircle2, Dumbbell } from 'lucide-react'
 import { listRetoSentadillasTop, submitRetoSentadillas } from '../../services/data.js'
 import { createSquatCounter, kneeAngleFromLandmarks, loadPoseLandmarker } from '../../services/pose.js'
 
@@ -156,7 +157,10 @@ export default function RetoSentadillasPage() {
       <div className="w-full max-w-md">
         {phase === 'form' && (
           <>
-            <h1 className="mb-1 text-2xl font-semibold text-white">💪 Reto de las sentadillas</h1>
+            <h1 className="mb-1 flex items-center gap-2 text-2xl font-semibold text-white">
+              <Dumbbell size={22} />
+              Reto de las sentadillas
+            </h1>
             <p className="mb-6 text-sm text-slate-400">Tienes {DURACION_SEGUNDOS} segundos para hacer todas las sentadillas que puedas frente a la cámara. ¡Acércate a nuestro stand!</p>
             <form onSubmit={empezar} className="space-y-4">
               <div>
@@ -202,7 +206,10 @@ export default function RetoSentadillasPage() {
                 <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-4 text-center">
                   <p className="text-xs uppercase tracking-wider text-blue-300">¡Tiempo!</p>
                   <p className="text-4xl font-bold text-white">{reps} sentadillas</p>
-                  <p className="mt-1 text-xs text-slate-400">{guardado ? 'Puntaje guardado ✓' : 'Guardando puntaje…'}</p>
+                  <p className="mt-1 flex items-center justify-center gap-1 text-xs text-slate-400">
+                    {guardado && <CheckCircle2 size={14} />}
+                    {guardado ? 'Puntaje guardado' : 'Guardando puntaje…'}
+                  </p>
                   {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
                 </div>
 

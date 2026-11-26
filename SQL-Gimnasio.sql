@@ -159,6 +159,18 @@ create unique index uq_reservas_activa
 
 create index idx_reservas_socio on reservas (socio_id);
 
+create table reto_sentadillas(
+    id                  bigint       generated always as identity primary key,
+    nombre              varchar(60)  not null,
+    repeticiones        integer      not null
+                        constraint ck_reto_sentadillas_repeticiones check (repeticiones >= 0 and repeticiones <= 500),
+    duracion_segundos   integer      not null
+                        constraint ck_reto_sentadillas_duracion check (duracion_segundos > 0 and duracion_segundos <= 600),
+    creado_en           timestamptz  not null default now()
+);
+
+create index idx_reto_sentadillas_repeticiones on reto_sentadillas (repeticiones desc, creado_en);
+
 update gimnasio.usuarios
 set rol_id = (select id from gimnasio.roles where nombre = 'ADMINISTRADOR')
 where correo = 'admin@test.com';

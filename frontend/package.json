@@ -10,6 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@mediapipe/tasks-vision": "^1.2.3",
     "face-api.js": "^0.22.2",
     "microsoft-cognitiveservices-speech-sdk": "^1.53.0",
     "react": "^19.0.0",

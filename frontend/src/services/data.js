@@ -186,3 +186,12 @@ export async function resetPassword(token, nuevaPassword) {
 export async function registerPublic({ nombre, apellido, correo, password, dni, genero, telefono }) {
   return api.post('/socios', { nombre: nombre?.trim(), apellido: apellido?.trim(), correo: correo?.trim(), password, dni, genero, telefono: telefono?.trim() || undefined })
 }
+
+// ---- Reto de sentadillas (stand de feria, publico) ----
+export async function submitRetoSentadillas({ nombre, repeticiones, duracionSegundos }) {
+  return api.post('/reto-sentadillas', { nombre: nombre?.trim(), repeticiones, duracionSegundos })
+}
+
+export async function listRetoSentadillasTop(limit = 10) {
+  return api.get(`/reto-sentadillas/top?limit=${limit}`)
+}

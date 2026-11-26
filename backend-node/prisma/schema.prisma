@@ -186,6 +186,20 @@ model RecuperacionToken {
   @@schema("gimnasio")
 }
 
+// Reto publico del stand: visitantes sin cuenta compiten contando sentadillas
+// frente a la camara; no se vincula a Usuario/Socio porque son invitados anonimos.
+model RetoSentadilla {
+  id               BigInt   @id @default(autoincrement())
+  nombre           String   @db.VarChar(60)
+  repeticiones     Int
+  duracionSegundos Int      @map("duracion_segundos")
+  creadoEn         DateTime @default(now()) @map("creado_en") @db.Timestamptz(6)
+
+  @@index([repeticiones, creadoEn], map: "idx_reto_sentadillas_repeticiones")
+  @@map("reto_sentadillas")
+  @@schema("gimnasio")
+}
+
 model Auditoria {
   id        BigInt   @id @default(autoincrement())
   usuarioId BigInt?  @map("usuario_id")

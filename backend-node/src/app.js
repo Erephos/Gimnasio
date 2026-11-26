@@ -9,6 +9,7 @@ import financeRoutes from './routes/finance.js'
 import scheduleRoutes from './routes/schedule.js'
 import adminRoutes from './routes/admin.js'
 import facialRoutes from './routes/facial.js'
+import retoRoutes from './routes/reto.js'
 import { authenticate } from './middleware/auth.js'
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js'
 
@@ -33,6 +34,8 @@ app.get('/api/health', async (req, res, next) => {
 })
 
 app.use('/api/auth', authRoutes)
+// Reto de sentadillas: stand de feria, visitantes sin cuenta. Publico igual que el registro.
+app.use('/api', retoRoutes)
 // Self-registration is public; every other API route requires a valid active account.
 app.use('/api', (req, res, next) => {
   if (req.method === 'POST' && req.path === '/socios') return next()

@@ -33,6 +33,8 @@ Configura `APP_MAIL_ENABLED=true`, `APP_MAIL_FROM`, `APP_MAIL_RESET_URL`, `MAIL_
 | POST | `/api/auth/recuperar` | Público | Solicita enlace temporal sin revelar si el correo está registrado. |
 | POST | `/api/auth/restablecer` | Público | Usa `token` y `nuevaPassword`; token de un solo uso por 30 minutos. |
 | POST | `/api/socios` | Público | Registro de socio. |
+| POST | `/api/reto-sentadillas` | Público | Guarda el puntaje del reto de sentadillas (stand de feria): `nombre`, `repeticiones`, `duracionSegundos`. |
+| GET | `/api/reto-sentadillas/top` | Público | Top puntajes del reto, `limit` opcional (máx. 50). |
 | GET | `/api/socios` | Admin, recepción | Listado paginado; filtros `q`, `activo`, `page`, `size`. |
 | GET | `/api/socios/mi-perfil` | Socio | Perfil asociado al token. |
 | GET, PUT | `/api/socios/{id}` | Admin, recepción, socio | Consultar/actualizar; socio solo el propio, DNI editable solo por admin. |

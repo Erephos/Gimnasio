@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { homePathFor } from '../../config/roles.js'
 import { recoverPassword, registerPublic, resetPassword } from '../../services/data.js'
 import { useAuth } from './useAuth.js'
@@ -183,6 +183,13 @@ export default function LoginPage() {
               )}
             </>
           )}
+
+          <Link
+            to="/reto-sentadillas"
+            className="mt-6 block rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-center text-sm font-medium text-blue-300 hover:bg-blue-500/20"
+          >
+            💪 ¿Nos visitas en el stand? Prueba el reto de sentadillas
+          </Link>
         </div>
       </div>
     </div>

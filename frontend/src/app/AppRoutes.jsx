@@ -14,6 +14,7 @@ import AlertasPage from '../features/alertas/AlertasPage.jsx'
 import ReportesPage from '../features/reportes/ReportesPage.jsx'
 import AdminPage from '../features/admin/AdminPage.jsx'
 import MiCuentaPage from '../features/mi-cuenta/MiCuentaPage.jsx'
+import RetoSentadillasPage from '../features/reto-sentadillas/RetoSentadillasPage.jsx'
 
 function HomeRedirect() {
   const { user, isAuthenticated } = useAuth()
@@ -31,6 +32,7 @@ export default function AppRoutes() {
     <Routes>
       <Route path="/" element={<HomeRedirect />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/reto-sentadillas" element={<RetoSentadillasPage />} />
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
           <Route path="/dashboard" element={<RoleGate roles={STAFF}><DashboardPage /></RoleGate>} />
